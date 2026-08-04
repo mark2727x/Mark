@@ -3,20 +3,30 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: ShiftGuard lifeguard marketplace API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication and session
+  - name: shifts
+    description: Shift listings
+  - name: applications
+    description: Shift pickup / applications
+  - name: users
+    description: User profiles
+  - name: ratings
+    description: Ratings and reviews
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +34,689 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Auth ────────────────────────────────────────────────────────────────────
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user (lifeguard or pool manager)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Log in with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get the current authenticated user
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Shifts ──────────────────────────────────────────────────────────────────
+  /shifts:
+    get:
+      operationId: listShifts
+      tags: [shifts]
+      summary: Browse open shifts (lifeguard feed)
+      parameters:
+        - name: certification
+          in: query
+          schema:
+            type: string
+          description: Filter by required certification (e.g. "Lifeguard", "WSI")
+        - name: minPay
+          in: query
+          schema:
+            type: number
+          description: Minimum hourly pay rate
+        - name: location
+          in: query
+          schema:
+            type: string
+          description: Free-text location search
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, filled, completed, cancelled]
+          description: Filter by shift status (default open)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Shift"
+    post:
+      operationId: createShift
+      tags: [shifts]
+      summary: Post a new shift (pool manager only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShiftInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shift"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Only pool managers can post shifts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /shifts/{id}:
+    get:
+      operationId: getShift
+      tags: [shifts]
+      summary: Get a single shift with full details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shift"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateShift
+      tags: [shifts]
+      summary: Update a shift (owning manager only, only when open)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShiftUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shift"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteShift
+      tags: [shifts]
+      summary: Cancel/delete a shift (owning manager only, only when open)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /shifts/{id}/pickup:
+    post:
+      operationId: pickupShift
+      tags: [applications]
+      summary: Lifeguard picks up an open shift
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Shift picked up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shift"
+        "400":
+          description: Shift not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Only lifeguards can pick up shifts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /shifts/{id}/complete:
+    post:
+      operationId: completeShift
+      tags: [applications]
+      summary: Pool manager marks shift as completed
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Shift completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shift"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /shifts/{id}/drop:
+    post:
+      operationId: dropShift
+      tags: [applications]
+      summary: Lifeguard drops a shift they previously picked up
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Shift dropped, status reverts to open
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shift"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── User Profile ─────────────────────────────────────────────────────────────
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get a user's public profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/me:
+    patch:
+      operationId: updateMe
+      tags: [users]
+      summary: Update current user's profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}/shifts:
+    get:
+      operationId: getUserShifts
+      tags: [users]
+      summary: List shifts posted by (manager) or worked by (lifeguard) a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Shift"
+
+  # ── Ratings ──────────────────────────────────────────────────────────────────
+  /ratings:
+    post:
+      operationId: createRating
+      tags: [ratings]
+      summary: Submit a rating after a completed shift
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RatingInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rating"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Already rated this shift
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}/ratings:
+    get:
+      operationId: getUserRatings
+      tags: [ratings]
+      summary: Get ratings received by a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rating"
+
 components:
   schemas:
+    # ── Core ──────────────────────────────────────────────────────────────────
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    # ── Auth ──────────────────────────────────────────────────────────────────
+    RegisterInput:
+      type: object
+      required: [email, password, name, role]
+      properties:
+        email:
+          type: string
+          
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+          minLength: 2
+        role:
+          type: string
+          enum: [lifeguard, manager]
+        certifications:
+          type: ["array", "null"]
+          items:
+            type: string
+          description: Certifications the lifeguard holds (e.g. ["Lifeguard", "CPR/AED", "WSI"])
+        zelleId:
+          type: ["string", "null"]
+          description: Zelle phone/email for payment
+        bio:
+          type: ["string", "null"]
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+
+    # ── Users ─────────────────────────────────────────────────────────────────
+    User:
+      type: object
+      required: [id, email, name, role, ratingAvg, ratingCount, createdAt]
+      properties:
+        id:
+          type: number
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [lifeguard, manager]
+        bio:
+          type: ["string", "null"]
+        certifications:
+          type: ["array", "null"]
+          items:
+            type: string
+        zelleId:
+          type: ["string", "null"]
+        ratingAvg:
+          type: number
+        ratingCount:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+
+    UserUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+        bio:
+          type: string
+        certifications:
+          type: array
+          items:
+            type: string
+        zelleId:
+          type: string
+
+    # ── Shifts ────────────────────────────────────────────────────────────────
+    Shift:
+      type: object
+      required:
+        - id
+        - title
+        - location
+        - payRate
+        - totalHours
+        - startTime
+        - certificationRequired
+        - description
+        - rules
+        - status
+        - managerId
+        - createdAt
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        location:
+          type: string
+        payRate:
+          type: number
+          description: Hourly pay in USD
+        totalHours:
+          type: number
+        startTime:
+          type: string
+          format: date-time
+        certificationRequired:
+          type: string
+          description: e.g. "Lifeguard", "WSI", "CPR/AED"
+        description:
+          type: string
+        rules:
+          type: string
+          description: Rules and requirements set by the employer
+        status:
+          type: string
+          enum: [open, filled, completed, cancelled]
+        managerId:
+          type: number
+        manager:
+          $ref: "#/components/schemas/User"
+        workerId:
+          type: ["number", "null"]
+        worker:
+          oneOf:
+            - $ref: "#/components/schemas/User"
+            - type: "null"
+        createdAt:
+          type: string
+          format: date-time
+
+    ShiftInput:
+      type: object
+      required:
+        - title
+        - location
+        - payRate
+        - totalHours
+        - startTime
+        - certificationRequired
+        - description
+        - rules
+      properties:
+        title:
+          type: string
+        location:
+          type: string
+        payRate:
+          type: number
+        totalHours:
+          type: number
+        startTime:
+          type: string
+          format: date-time
+        certificationRequired:
+          type: string
+        description:
+          type: string
+        rules:
+          type: string
+
+    ShiftUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        location:
+          type: string
+        payRate:
+          type: number
+        totalHours:
+          type: number
+        startTime:
+          type: string
+          format: date-time
+        certificationRequired:
+          type: string
+        description:
+          type: string
+        rules:
+          type: string
+
+    # ── Ratings ───────────────────────────────────────────────────────────────
+    Rating:
+      type: object
+      required: [id, raterId, rateeId, shiftId, score, createdAt]
+      properties:
+        id:
+          type: number
+        raterId:
+          type: number
+        rater:
+          $ref: "#/components/schemas/User"
+        rateeId:
+          type: number
+        ratee:
+          $ref: "#/components/schemas/User"
+        shiftId:
+          type: number
+        score:
+          type: number
+          minimum: 1
+          maximum: 5
+        comment:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    RatingInput:
+      type: object
+      required: [rateeId, shiftId, score]
+      properties:
+        rateeId:
+          type: number
+        shiftId:
+          type: number
+        score:
+          type: number
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string

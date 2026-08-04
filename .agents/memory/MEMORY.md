@@ -1,0 +1,3 @@
+- [Zod codegen Orval quirk](orval-zod-compat.md) — Orval v8 emits Zod v4 APIs (zod.int, zod.email) but workspace resolves `zod` to v3; avoid `type: integer` and `format: email` in OpenAPI spec.
+- [Orval generated names](orval-generated-names.md) — generated Zod schema names differ from OpenAPI schema names; use the generated file (api-zod/src/generated/api.ts) as source of truth when importing in routes.
+- [Design system status](ds-status.md) — Latent Studio DS tokens written; waiting on user approval before applying to mobile screens.

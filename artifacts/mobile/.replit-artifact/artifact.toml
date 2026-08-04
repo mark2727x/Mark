@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/"
+title = "ShiftGuard"
+description = "A lifeguard shift marketplace where pool operators and aquatic employers post available shifts with certification requirements, pay rates, and hours. Certified lifeguards browse and pick up shifts, build their profiles, and get rated. Both sides rate each other after the shift, and payment is handled via Zelle with a small platform fee."
+version = "1.0.0"
+id = "artifacts/mobile"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/" ]
+localPort = 18115
+
+[services.development]
+run = "pnpm --filter @workspace/mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/mobile", "run", "serve" ]
+
+[services.env]
+PORT = "18115"
+BASE_PATH = "/"

@@ -1,0 +1,19 @@
+kind = "design-system"
+previewPath = "/latent-studio-ds/"
+title = "Latent Studio Design System"
+description = "A dark, warm, technical design system extracted from the Latent FM / AI render studio mockup. Burnt-orange primary accent on near-black warm surfaces, with Space Grotesk sans + Instrument Serif + JetBrains Mono typography. Sharp corners, high contrast, grid-ruled aesthetic."
+version = "1.0.0"
+id = "artifacts/latent-studio-ds"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/latent-studio-ds/" ]
+localPort = 25584
+
+[services.development]
+run = "pnpm --filter @workspace/latent-studio-ds run dev"
+
+[services.env]
+PORT = "25584"
+BASE_PATH = "/latent-studio-ds/"
