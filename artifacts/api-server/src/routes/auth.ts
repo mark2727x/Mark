@@ -27,6 +27,8 @@ if (!SESSION_SECRET) {
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 const RED_CROSS_ASSOCIATION = "American Red Cross";
 const RED_CROSS_LOOKUP_URL = "https://www.redcross.org/take-a-class/digital-certificate";
+const RED_CROSS_SEARCH_URL =
+  "https://www.redcross.org/on/demandware.store/Sites-RedCross-Site/default/Certificates-SearchCertificates";
 
 type CertificateDetails = {
   association: string;
@@ -56,10 +58,12 @@ async function lookupCertificate(details: CertificateDetails): Promise<{
   }
 
   const verificationUrl =
-    `${RED_CROSS_LOOKUP_URL}?certnumber=${encodeURIComponent(details.certificateNumber)}&searchby=certificate`;
+    `${RED_CROSS_LOOKUP_URL}?certnumber=${encodeURIComponent(details.certificateNumber)}`;
+  const searchUrl =
+    `${RED_CROSS_SEARCH_URL}?certnumber=${encodeURIComponent(details.certificateNumber)}&format=ajax`;
 
   try {
-    const response = await fetch(verificationUrl, {
+    const response = await fetch(searchUrl, {
       headers: { "User-Agent": "ShiftGuard certificate verification/1.0" },
       signal: AbortSignal.timeout(10000),
     });
@@ -67,9 +71,11 @@ async function lookupCertificate(details: CertificateDetails): Promise<{
       throw new Error(`Certificate provider returned ${response.status}`);
     }
     const html = await response.text();
-    const notFound = /Sorry,\s*we did not find a certificate/i.test(html);
-    const hasCertificateResult = /certificate-result/i.test(html);
-    return { verified: hasCertificateResult && !notFound, verificationUrl };
+    const notFound =
+      /empty-certificate-result|no-certificate-result|Sorry,\s*we did not find a certificate/i.test(html);
+    const hasCertificateDetails =
+      /certificate-heading-list|eachcertPDF|certificateName|Certificate ID:/i.test(html);
+    return { verified: !notFound && hasCertificateDetails, verificationUrl };
   } catch {
     throw new Error("The certificate provider could not be reached. Try again.");
   }
