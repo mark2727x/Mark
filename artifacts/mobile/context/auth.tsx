@@ -19,6 +19,7 @@ export type UserRole = 'lifeguard' | 'manager';
 export interface AuthUser {
   id: number;
   email: string;
+  phone: string;
   name: string;
   role: UserRole;
   bio?: string | null;
@@ -42,6 +43,7 @@ interface AuthState {
 interface AuthActions {
   register(data: {
     email: string;
+    phone: string;
     password: string;
     name: string;
     role: UserRole;

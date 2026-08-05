@@ -101,7 +101,7 @@ function verificationExpiry(): Date {
 }
 
 function issueAuth(user: any) {
-  return { token: makeToken(user.id), user: sanitizeUser(user) };
+  return { token: makeToken(user.id), user: sanitizeUser(user, { includePhone: true }) };
 }
 
 export function getUserIdFromToken(token: string): number | null {
@@ -154,9 +154,13 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  if (parsed.data.phone.replace(/\D/g, "").length < 10) {
+    res.status(400).json({ error: "Enter a valid 10-digit phone number" });
+    return;
+  }
 
   const {
-    email, password, name, role, certifications, zelleId, bio,
+    email, phone, password, name, role, certifications, zelleId, bio,
     certificateAssociation, certificateType, certificateNumber,
   } = parsed.data;
 
@@ -197,6 +201,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   const verificationCode = makeVerificationCode();
   const [user] = await db.insert(usersTable).values({
     email,
+    phone: phone.trim(),
     passwordHash,
     name,
     role,
@@ -351,11 +356,14 @@ router.get("/auth/me", requireAuth, async (req: any, res): Promise<void> => {
     res.status(401).json({ error: "User not found" });
     return;
   }
-  res.json(sanitizeUser(user));
+  res.json(sanitizeUser(user, { includePhone: true }));
 });
 
-export function sanitizeUser(user: any) {
+export function sanitizeUser(user: any, options: { includePhone?: boolean } = {}) {
   const { passwordHash: _, certificateNumber: __, ...safe } = user;
+  if (!options.includePhone) {
+    delete safe.phone;
+  }
   return safe;
 }
 

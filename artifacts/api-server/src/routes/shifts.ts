@@ -2,21 +2,48 @@ import { Router, type IRouter } from "express";
 import { eq, and, ilike, gte } from "drizzle-orm";
 import { db, shiftsTable, usersTable, ratingsTable } from "@workspace/db";
 import { CreateShiftBody as ShiftInput, UpdateShiftBody as ShiftUpdate } from "@workspace/api-zod";
-import { requireAuth, sanitizeUser } from "./auth";
+import { getUserIdFromToken, requireAuth, sanitizeUser } from "./auth";
 
 const router: IRouter = Router();
 
-async function enrichShift(shift: any) {
+function viewerIdFromRequest(req: any): number | undefined {
+  const auth = req.headers?.authorization ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  return token ? getUserIdFromToken(token) ?? undefined : undefined;
+}
+
+function hasExactLocation(value: string): boolean {
+  return /^\d+\s+[^,]+,\s*[^,]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?$/i.test(value.trim());
+}
+
+function hasValidFutureStartTime(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) return false;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) && time > Date.now();
+}
+
+async function enrichShift(shift: any, viewerId?: number) {
   const [manager] = await db.select().from(usersTable).where(eq(usersTable.id, shift.managerId)).limit(1);
   let worker = null;
   if (shift.workerId) {
     const [w] = await db.select().from(usersTable).where(eq(usersTable.id, shift.workerId)).limit(1);
     worker = w ? sanitizeUser(w) : null;
   }
-  return { ...shift, manager: manager ? sanitizeUser(manager) : null, worker };
+  const canShareContacts =
+    shift.status === "filled" &&
+    viewerId !== undefined &&
+    (viewerId === shift.managerId || viewerId === shift.workerId);
+
+  return {
+    ...shift,
+    manager: manager ? sanitizeUser(manager) : null,
+    worker,
+    managerContact: canShareContacts && manager ? { name: manager.name, phone: manager.phone } : null,
+    workerContact: canShareContacts && worker ? { name: worker.name, phone: worker.phone } : null,
+  };
 }
 
-router.get("/shifts", async (req, res): Promise<void> => {
+router.get("/shifts", async (req: any, res): Promise<void> => {
   const { certification, status = "open", location } = req.query as Record<string, string>;
 
   let query = db.select().from(shiftsTable).$dynamic();
@@ -29,7 +56,7 @@ router.get("/shifts", async (req, res): Promise<void> => {
   if (conditions.length > 0) query = query.where(and(...conditions));
 
   const shifts = await query.orderBy(shiftsTable.startTime);
-  const enriched = await Promise.all(shifts.map(enrichShift));
+  const enriched = await Promise.all(shifts.map((shift) => enrichShift(shift, viewerIdFromRequest(req))));
   res.json(enriched);
 });
 
@@ -39,10 +66,24 @@ router.post("/shifts", requireAuth, async (req: any, res): Promise<void> => {
     res.status(403).json({ error: "Only pool managers can post shifts" });
     return;
   }
+  if (!me.phone?.trim()) {
+    res.status(400).json({ error: "Add a phone number to your profile before posting a shift" });
+    return;
+  }
 
   const parsed = ShiftInput.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (!hasExactLocation(parsed.data.location)) {
+    res.status(400).json({
+      error: "Enter an exact location as street address, city, state abbreviation, and ZIP code",
+    });
+    return;
+  }
+  if (!hasValidFutureStartTime(parsed.data.startTime)) {
+    res.status(400).json({ error: "Enter a valid future start date and time" });
     return;
   }
 
@@ -52,7 +93,7 @@ router.post("/shifts", requireAuth, async (req: any, res): Promise<void> => {
     managerId: req.userId,
   }).returning();
 
-  res.status(201).json(await enrichShift(shift));
+  res.status(201).json(await enrichShift(shift, req.userId));
 });
 
 router.get("/shifts/:id", async (req, res): Promise<void> => {
@@ -62,7 +103,7 @@ router.get("/shifts/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Shift not found" });
     return;
   }
-  res.json(await enrichShift(shift));
+  res.json(await enrichShift(shift, viewerIdFromRequest(req)));
 });
 
 router.patch("/shifts/:id", requireAuth, async (req: any, res): Promise<void> => {
@@ -74,12 +115,20 @@ router.patch("/shifts/:id", requireAuth, async (req: any, res): Promise<void> =>
 
   const parsed = ShiftUpdate.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  if (parsed.data.location && !hasExactLocation(parsed.data.location)) {
+    res.status(400).json({ error: "Enter an exact street address, city, state abbreviation, and ZIP code" });
+    return;
+  }
+  if (parsed.data.startTime && !hasValidFutureStartTime(parsed.data.startTime)) {
+    res.status(400).json({ error: "Enter a valid future start date and time" });
+    return;
+  }
 
   const updateData: any = { ...parsed.data };
   if (updateData.startTime) updateData.startTime = new Date(updateData.startTime);
 
   const [updated] = await db.update(shiftsTable).set(updateData).where(eq(shiftsTable.id, id)).returning();
-  res.json(await enrichShift(updated));
+  res.json(await enrichShift(updated, req.userId));
 });
 
 router.delete("/shifts/:id", requireAuth, async (req: any, res): Promise<void> => {
@@ -99,6 +148,10 @@ router.post("/shifts/:id/pickup", requireAuth, async (req: any, res): Promise<vo
     res.status(403).json({ error: "Only lifeguards can pick up shifts" });
     return;
   }
+  if (!me.phone?.trim()) {
+    res.status(400).json({ error: "Add a phone number to your profile before picking up a shift" });
+    return;
+  }
 
   const [shift] = await db.select().from(shiftsTable).where(eq(shiftsTable.id, id)).limit(1);
   if (!shift) { res.status(404).json({ error: "Shift not found" }); return; }
@@ -108,7 +161,7 @@ router.post("/shifts/:id/pickup", requireAuth, async (req: any, res): Promise<vo
     .set({ status: "filled", workerId: req.userId })
     .where(eq(shiftsTable.id, id))
     .returning();
-  res.json(await enrichShift(updated));
+  res.json(await enrichShift(updated, req.userId));
 });
 
 router.post("/shifts/:id/drop", requireAuth, async (req: any, res): Promise<void> => {

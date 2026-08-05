@@ -10,6 +10,8 @@ import type { UserRole } from './userRole';
 export interface User {
   id: number;
   email: string;
+  /** Present for the authenticated user and assigned shift participants only */
+  phone?: string;
   name: string;
   role: UserRole;
   /** @nullable */

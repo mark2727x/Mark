@@ -23,6 +23,11 @@ export const RegisterInputRole = {
 
 export interface RegisterInput {
   email: string;
+  /**
+     * Phone number used for contact after a shift is picked up
+     * @minLength 10
+     */
+  phone: string;
   /** @minLength 8 */
   password: string;
   /** @minLength 2 */
@@ -100,6 +105,8 @@ export const UserRole = {
 export interface User {
   id: number;
   email: string;
+  /** Present for the authenticated user and assigned shift participants only */
+  phone?: string;
   name: string;
   role: UserRole;
   /** @nullable */
@@ -135,6 +142,8 @@ export interface RegistrationResponse {
 }
 
 export interface UserUpdate {
+  /** @minLength 10 */
+  phone?: string;
   /** @minLength 2 */
   name?: string;
   bio?: string;
@@ -152,9 +161,15 @@ export const ShiftStatus = {
   cancelled: 'cancelled',
 } as const;
 
+export interface Contact {
+  name: string;
+  phone: string;
+}
+
 export interface Shift {
   id: number;
   title: string;
+  /** Exact street address, city, state, and ZIP code */
   location: string;
   /** Hourly pay in USD */
   payRate: number;
@@ -171,11 +186,17 @@ export interface Shift {
   /** @nullable */
   workerId?: number | null;
   worker?: User | null;
+  managerContact?: Contact | null;
+  workerContact?: Contact | null;
   createdAt: string;
 }
 
 export interface ShiftInput {
   title: string;
+  /**
+     * Exact street address, city, state, and ZIP code
+     * @minLength 10
+     */
   location: string;
   payRate: number;
   totalHours: number;
@@ -187,6 +208,7 @@ export interface ShiftInput {
 
 export interface ShiftUpdate {
   title?: string;
+  /** @minLength 10 */
   location?: string;
   payRate?: number;
   totalHours?: number;

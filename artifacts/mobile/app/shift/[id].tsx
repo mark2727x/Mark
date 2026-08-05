@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, Alert,
+  View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, Alert, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -43,6 +43,8 @@ interface ShiftDetail {
   workerId?: number | null;
   manager?: { id: number; name: string; ratingAvg: number; ratingCount: number } | null;
   worker?: { id: number; name: string; ratingAvg: number; ratingCount: number; zelleId?: string | null } | null;
+  managerContact?: { name: string; phone: string } | null;
+  workerContact?: { name: string; phone: string } | null;
 }
 
 export default function ShiftDetailScreen() {
@@ -122,6 +124,7 @@ export default function ShiftDetailScreen() {
   const isLifeguard = user?.role === 'lifeguard';
   const isManager = user?.role === 'manager' && shift.managerId === user.id;
   const isAssigned = shift.workerId === user?.id;
+  const otherContact = isLifeguard ? shift.managerContact : isManager ? shift.workerContact : null;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -225,6 +228,24 @@ export default function ShiftDetailScreen() {
           </Card>
         )}
 
+        {shift.status === 'filled' && otherContact && (
+          <Card style={styles.card}>
+            <CardContent>
+              <Label style={styles.sectionLabel}>Shift contact</Label>
+              <H3 style={styles.personName}>{otherContact.name}</H3>
+              <Caption style={styles.contactNote}>
+                This contact is shared because you are assigned to this shift.
+              </Caption>
+              <TouchableOpacity
+                onPress={() => Linking.openURL(`tel:${otherContact.phone.replace(/[^\d+]/g, '')}`)}
+                style={styles.phoneButton}
+              >
+                <Mono style={styles.phoneText}>☎ {otherContact.phone}</Mono>
+              </TouchableOpacity>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Mutaton errors */}
         {(pickupMutation.error || dropMutation.error || completeMutation.error) && (
           <Body style={styles.mutError}>
@@ -300,6 +321,15 @@ const styles = StyleSheet.create({
   },
   zelleLabel: { color: c.mutedForeground },
   zelleId: { color: c.foreground, fontSize: 14 },
+  contactNote: { color: c.mutedForeground, marginBottom: 10 },
+  phoneButton: {
+    backgroundColor: c.primary,
+    borderRadius: nativeTheme.radius,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    alignSelf: 'flex-start',
+  },
+  phoneText: { color: c.primaryForeground, fontSize: 14 },
   mutError: { color: c.destructive, fontSize: 13, marginBottom: 8 },
   actions: { gap: 10, marginTop: 8 },
   actionBtn: { width: '100%' },

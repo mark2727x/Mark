@@ -19,6 +19,8 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary Register a new user (lifeguard or pool manager)
  */
+export const registerBodyPhoneMin = 10;
+
 export const registerBodyPasswordMin = 8;
 
 export const registerBodyNameMin = 2;
@@ -27,6 +29,7 @@ export const registerBodyNameMin = 2;
 
 export const RegisterBody = zod.object({
   "email": zod.string(),
+  "phone": zod.string().min(registerBodyPhoneMin).describe('Phone number used for contact after a shift is picked up'),
   "password": zod.string().min(registerBodyPasswordMin),
   "name": zod.string().min(registerBodyNameMin),
   "role": zod.enum(['lifeguard', 'manager']),
@@ -76,6 +79,7 @@ export const LoginResponse = zod.object({
   "user": zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -109,6 +113,7 @@ export const VerifyEmailResponse = zod.object({
   "user": zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -144,6 +149,7 @@ export const ResendVerificationResponse = zod.object({
 export const GetMeResponse = zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -171,7 +177,7 @@ export const ListShiftsQueryParams = zod.object({
 export const ListShiftsResponseItem = zod.object({
   "id": zod.number(),
   "title": zod.string(),
-  "location": zod.string(),
+  "location": zod.string().describe('Exact street address, city, state, and ZIP code'),
   "payRate": zod.number().describe('Hourly pay in USD'),
   "totalHours": zod.number(),
   "startTime": zod.coerce.date(),
@@ -183,6 +189,7 @@ export const ListShiftsResponseItem = zod.object({
   "manager": zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -199,6 +206,7 @@ export const ListShiftsResponseItem = zod.object({
   "worker": zod.union([zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -211,6 +219,14 @@ export const ListShiftsResponseItem = zod.object({
   "certificateType": zod.string().nullish(),
   "certificateVerifiedAt": zod.coerce.date().nullish()
 }),zod.null()]).optional(),
+  "managerContact": zod.union([zod.object({
+  "name": zod.string(),
+  "phone": zod.string()
+}),zod.null()]).optional(),
+  "workerContact": zod.union([zod.object({
+  "name": zod.string(),
+  "phone": zod.string()
+}),zod.null()]).optional(),
   "createdAt": zod.coerce.date()
 })
 export const ListShiftsResponse = zod.array(ListShiftsResponseItem)
@@ -219,9 +235,13 @@ export const ListShiftsResponse = zod.array(ListShiftsResponseItem)
 /**
  * @summary Post a new shift (pool manager only)
  */
+export const createShiftBodyLocationMin = 10;
+
+
+
 export const CreateShiftBody = zod.object({
   "title": zod.string(),
-  "location": zod.string(),
+  "location": zod.string().min(createShiftBodyLocationMin).describe('Exact street address, city, state, and ZIP code'),
   "payRate": zod.number(),
   "totalHours": zod.number(),
   "startTime": zod.coerce.date(),
@@ -233,7 +253,7 @@ export const CreateShiftBody = zod.object({
 export const CreateShiftResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
-  "location": zod.string(),
+  "location": zod.string().describe('Exact street address, city, state, and ZIP code'),
   "payRate": zod.number().describe('Hourly pay in USD'),
   "totalHours": zod.number(),
   "startTime": zod.coerce.date(),
@@ -245,6 +265,7 @@ export const CreateShiftResponse = zod.object({
   "manager": zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -261,6 +282,7 @@ export const CreateShiftResponse = zod.object({
   "worker": zod.union([zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -272,6 +294,14 @@ export const CreateShiftResponse = zod.object({
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
   "certificateVerifiedAt": zod.coerce.date().nullish()
+}),zod.null()]).optional(),
+  "managerContact": zod.union([zod.object({
+  "name": zod.string(),
+  "phone": zod.string()
+}),zod.null()]).optional(),
+  "workerContact": zod.union([zod.object({
+  "name": zod.string(),
+  "phone": zod.string()
 }),zod.null()]).optional(),
   "createdAt": zod.coerce.date()
 })
@@ -287,7 +317,7 @@ export const GetShiftParams = zod.object({
 export const GetShiftResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
-  "location": zod.string(),
+  "location": zod.string().describe('Exact street address, city, state, and ZIP code'),
   "payRate": zod.number().describe('Hourly pay in USD'),
   "totalHours": zod.number(),
   "startTime": zod.coerce.date(),
@@ -299,6 +329,7 @@ export const GetShiftResponse = zod.object({
   "manager": zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -315,6 +346,7 @@ export const GetShiftResponse = zod.object({
   "worker": zod.union([zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -327,6 +359,14 @@ export const GetShiftResponse = zod.object({
   "certificateType": zod.string().nullish(),
   "certificateVerifiedAt": zod.coerce.date().nullish()
 }),zod.null()]).optional(),
+  "managerContact": zod.union([zod.object({
+  "name": zod.string(),
+  "phone": zod.string()
+}),zod.null()]).optional(),
+  "workerContact": zod.union([zod.object({
+  "name": zod.string(),
+  "phone": zod.string()
+}),zod.null()]).optional(),
   "createdAt": zod.coerce.date()
 })
 
@@ -338,9 +378,13 @@ export const UpdateShiftParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const updateShiftBodyLocationMin = 10;
+
+
+
 export const UpdateShiftBody = zod.object({
   "title": zod.string().optional(),
-  "location": zod.string().optional(),
+  "location": zod.string().min(updateShiftBodyLocationMin).optional(),
   "payRate": zod.number().optional(),
   "totalHours": zod.number().optional(),
   "startTime": zod.coerce.date().optional(),
@@ -352,7 +396,7 @@ export const UpdateShiftBody = zod.object({
 export const UpdateShiftResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
-  "location": zod.string(),
+  "location": zod.string().describe('Exact street address, city, state, and ZIP code'),
   "payRate": zod.number().describe('Hourly pay in USD'),
   "totalHours": zod.number(),
   "startTime": zod.coerce.date(),
@@ -364,6 +408,7 @@ export const UpdateShiftResponse = zod.object({
   "manager": zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -380,6 +425,7 @@ export const UpdateShiftResponse = zod.object({
   "worker": zod.union([zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -391,6 +437,14 @@ export const UpdateShiftResponse = zod.object({
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
   "certificateVerifiedAt": zod.coerce.date().nullish()
+}),zod.null()]).optional(),
+  "managerContact": zod.union([zod.object({
+  "name": zod.string(),
+  "phone": zod.string()
+}),zod.null()]).optional(),
+  "workerContact": zod.union([zod.object({
+  "name": zod.string(),
+  "phone": zod.string()
 }),zod.null()]).optional(),
   "createdAt": zod.coerce.date()
 })
@@ -416,7 +470,7 @@ export const PickupShiftParams = zod.object({
 export const PickupShiftResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
-  "location": zod.string(),
+  "location": zod.string().describe('Exact street address, city, state, and ZIP code'),
   "payRate": zod.number().describe('Hourly pay in USD'),
   "totalHours": zod.number(),
   "startTime": zod.coerce.date(),
@@ -428,6 +482,7 @@ export const PickupShiftResponse = zod.object({
   "manager": zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -444,6 +499,7 @@ export const PickupShiftResponse = zod.object({
   "worker": zod.union([zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -455,6 +511,14 @@ export const PickupShiftResponse = zod.object({
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
   "certificateVerifiedAt": zod.coerce.date().nullish()
+}),zod.null()]).optional(),
+  "managerContact": zod.union([zod.object({
+  "name": zod.string(),
+  "phone": zod.string()
+}),zod.null()]).optional(),
+  "workerContact": zod.union([zod.object({
+  "name": zod.string(),
+  "phone": zod.string()
 }),zod.null()]).optional(),
   "createdAt": zod.coerce.date()
 })
@@ -470,7 +534,7 @@ export const CompleteShiftParams = zod.object({
 export const CompleteShiftResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
-  "location": zod.string(),
+  "location": zod.string().describe('Exact street address, city, state, and ZIP code'),
   "payRate": zod.number().describe('Hourly pay in USD'),
   "totalHours": zod.number(),
   "startTime": zod.coerce.date(),
@@ -482,6 +546,7 @@ export const CompleteShiftResponse = zod.object({
   "manager": zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -498,6 +563,7 @@ export const CompleteShiftResponse = zod.object({
   "worker": zod.union([zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -509,6 +575,14 @@ export const CompleteShiftResponse = zod.object({
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
   "certificateVerifiedAt": zod.coerce.date().nullish()
+}),zod.null()]).optional(),
+  "managerContact": zod.union([zod.object({
+  "name": zod.string(),
+  "phone": zod.string()
+}),zod.null()]).optional(),
+  "workerContact": zod.union([zod.object({
+  "name": zod.string(),
+  "phone": zod.string()
 }),zod.null()]).optional(),
   "createdAt": zod.coerce.date()
 })
@@ -524,7 +598,7 @@ export const DropShiftParams = zod.object({
 export const DropShiftResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
-  "location": zod.string(),
+  "location": zod.string().describe('Exact street address, city, state, and ZIP code'),
   "payRate": zod.number().describe('Hourly pay in USD'),
   "totalHours": zod.number(),
   "startTime": zod.coerce.date(),
@@ -536,6 +610,7 @@ export const DropShiftResponse = zod.object({
   "manager": zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -552,6 +627,7 @@ export const DropShiftResponse = zod.object({
   "worker": zod.union([zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -563,6 +639,14 @@ export const DropShiftResponse = zod.object({
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
   "certificateVerifiedAt": zod.coerce.date().nullish()
+}),zod.null()]).optional(),
+  "managerContact": zod.union([zod.object({
+  "name": zod.string(),
+  "phone": zod.string()
+}),zod.null()]).optional(),
+  "workerContact": zod.union([zod.object({
+  "name": zod.string(),
+  "phone": zod.string()
 }),zod.null()]).optional(),
   "createdAt": zod.coerce.date()
 })
@@ -578,6 +662,7 @@ export const GetUserParams = zod.object({
 export const GetUserResponse = zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -595,11 +680,14 @@ export const GetUserResponse = zod.object({
 /**
  * @summary Update current user's profile
  */
+export const updateMeBodyPhoneMin = 10;
+
 export const updateMeBodyNameMin = 2;
 
 
 
 export const UpdateMeBody = zod.object({
+  "phone": zod.string().min(updateMeBodyPhoneMin).optional(),
   "name": zod.string().min(updateMeBodyNameMin).optional(),
   "bio": zod.string().optional(),
   "certifications": zod.array(zod.string()).optional(),
@@ -609,6 +697,7 @@ export const UpdateMeBody = zod.object({
 export const UpdateMeResponse = zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -633,7 +722,7 @@ export const GetUserShiftsParams = zod.object({
 export const GetUserShiftsResponseItem = zod.object({
   "id": zod.number(),
   "title": zod.string(),
-  "location": zod.string(),
+  "location": zod.string().describe('Exact street address, city, state, and ZIP code'),
   "payRate": zod.number().describe('Hourly pay in USD'),
   "totalHours": zod.number(),
   "startTime": zod.coerce.date(),
@@ -645,6 +734,7 @@ export const GetUserShiftsResponseItem = zod.object({
   "manager": zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -661,6 +751,7 @@ export const GetUserShiftsResponseItem = zod.object({
   "worker": zod.union([zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -672,6 +763,14 @@ export const GetUserShiftsResponseItem = zod.object({
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
   "certificateVerifiedAt": zod.coerce.date().nullish()
+}),zod.null()]).optional(),
+  "managerContact": zod.union([zod.object({
+  "name": zod.string(),
+  "phone": zod.string()
+}),zod.null()]).optional(),
+  "workerContact": zod.union([zod.object({
+  "name": zod.string(),
+  "phone": zod.string()
 }),zod.null()]).optional(),
   "createdAt": zod.coerce.date()
 })
@@ -702,6 +801,7 @@ export const CreateRatingResponse = zod.object({
   "rater": zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -718,6 +818,7 @@ export const CreateRatingResponse = zod.object({
   "ratee": zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -754,6 +855,7 @@ export const GetUserRatingsResponseItem = zod.object({
   "rater": zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),
@@ -770,6 +872,7 @@ export const GetUserRatingsResponseItem = zod.object({
   "ratee": zod.object({
   "id": zod.number(),
   "email": zod.string(),
+  "phone": zod.string().optional().describe('Present for the authenticated user and assigned shift participants only'),
   "name": zod.string(),
   "role": zod.enum(['lifeguard', 'manager']),
   "bio": zod.string().nullish(),

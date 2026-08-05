@@ -9,12 +9,16 @@ const router: IRouter = Router();
 router.get("/users/me", requireAuth, async (req: any, res): Promise<void> => {
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.userId)).limit(1);
   if (!user) { res.status(404).json({ error: "Not found" }); return; }
-  res.json(sanitizeUser(user));
+  res.json(sanitizeUser(user, { includePhone: true }));
 });
 
 router.patch("/users/me", requireAuth, async (req: any, res): Promise<void> => {
   const parsed = UserUpdate.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  if (parsed.data.phone !== undefined && parsed.data.phone.replace(/\D/g, "").length < 10) {
+    res.status(400).json({ error: "Enter a valid 10-digit phone number" });
+    return;
+  }
 
   const [updated] = await db.update(usersTable)
     .set(parsed.data)

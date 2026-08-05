@@ -8,6 +8,7 @@
 
 export interface ShiftUpdate {
   title?: string;
+  /** @minLength 10 */
   location?: string;
   payRate?: number;
   totalHours?: number;

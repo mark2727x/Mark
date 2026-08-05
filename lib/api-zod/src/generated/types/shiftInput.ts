@@ -8,6 +8,10 @@
 
 export interface ShiftInput {
   title: string;
+  /**
+     * Exact street address, city, state, and ZIP code
+     * @minLength 10
+     */
   location: string;
   payRate: number;
   totalHours: number;

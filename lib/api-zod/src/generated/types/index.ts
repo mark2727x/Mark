@@ -8,6 +8,7 @@
 
 export * from './authResponse';
 export * from './certificateVerificationResponse';
+export * from './contact';
 export * from './errorResponse';
 export * from './healthStatus';
 export * from './listShiftsParams';

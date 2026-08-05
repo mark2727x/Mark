@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { nativeTheme } from '@workspace/latent-studio-ds/lib/native-theme';
@@ -6,7 +6,9 @@ import { H2, H3, Body, Caption, Label } from '@workspace/latent-studio-ds/compon
 import { Badge } from '@workspace/latent-studio-ds/components/native/badge';
 import { Card, CardContent } from '@workspace/latent-studio-ds/components/native/card';
 import { Button } from '@workspace/latent-studio-ds/components/native/button';
+import { Input } from '@workspace/latent-studio-ds/components/native/input';
 import { useAuth } from '@/context/auth';
+import { apiFetch } from '@/lib/api';
 
 const c = nativeTheme.colors.dark;
 const f = nativeTheme.fontFamily;
@@ -24,8 +26,32 @@ function StarRating({ value }: { value: number }) {
 }
 
 export default function LifeguardProfileScreen() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
+  const [phone, setPhone] = useState(user?.phone ?? '');
+  const [savingPhone, setSavingPhone] = useState(false);
+  const [phoneMessage, setPhoneMessage] = useState('');
   if (!user) return null;
+
+  async function savePhone() {
+    if (phone.replace(/\D/g, '').length < 10) {
+      setPhoneMessage('Enter a valid 10-digit phone number');
+      return;
+    }
+    setSavingPhone(true);
+    setPhoneMessage('');
+    try {
+      await apiFetch('/users/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ phone: phone.trim() }),
+      });
+      await refreshUser();
+      setPhoneMessage('Phone number saved');
+    } catch (error: any) {
+      setPhoneMessage(error.message ?? 'Could not save phone number');
+    } finally {
+      setSavingPhone(false);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -57,6 +83,18 @@ export default function LifeguardProfileScreen() {
           <CardContent>
             <Label style={styles.cardLabel}>Email</Label>
             <Body style={styles.cardValue}>{user.email}</Body>
+            <Label style={[styles.cardLabel, { marginTop: 12 }]}>Phone</Label>
+            <Input
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="(555) 123-4567"
+              keyboardType="phone-pad"
+              autoComplete="tel"
+            />
+            <Button size="sm" loading={savingPhone} onPress={savePhone} style={styles.savePhoneBtn}>
+              Save phone
+            </Button>
+            {phoneMessage ? <Caption style={styles.phoneMessage}>{phoneMessage}</Caption> : null}
             {user.bio && (
               <>
                 <Label style={[styles.cardLabel, { marginTop: 12 }]}>Bio</Label>
@@ -133,4 +171,6 @@ const styles = StyleSheet.create({
   cardValue: { color: c.foreground },
   certRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   logoutBtn: { marginTop: 12 },
+  savePhoneBtn: { alignSelf: 'flex-start', marginTop: 10 },
+  phoneMessage: { color: c.mutedForeground, marginTop: 8 },
 });

@@ -9,6 +9,11 @@ import type { RegisterInputRole } from './registerInputRole';
 
 export interface RegisterInput {
   email: string;
+  /**
+     * Phone number used for contact after a shift is picked up
+     * @minLength 10
+     */
+  phone: string;
   /** @minLength 8 */
   password: string;
   /** @minLength 2 */

@@ -5,12 +5,14 @@
  * ShiftGuard lifeguard marketplace API
  * OpenAPI spec version: 0.1.0
  */
+import type { Contact } from './contact';
 import type { ShiftStatus } from './shiftStatus';
 import type { User } from './user';
 
 export interface Shift {
   id: number;
   title: string;
+  /** Exact street address, city, state, and ZIP code */
   location: string;
   /** Hourly pay in USD */
   payRate: number;
@@ -27,5 +29,7 @@ export interface Shift {
   /** @nullable */
   workerId?: number | null;
   worker?: User | null;
+  managerContact?: Contact | null;
+  workerContact?: Contact | null;
   createdAt: Date;
 }

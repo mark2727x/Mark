@@ -36,6 +36,7 @@ export default function RegisterScreen() {
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>('lifeguard');
   const [certificateAssociation, setCertificateAssociation] = useState('American Red Cross');
@@ -73,7 +74,14 @@ export default function RegisterScreen() {
   }
 
   async function handleRegister() {
-    if (!name || !email || !password) { setError('Fill in all required fields'); return; }
+    if (!name.trim() || !email.trim() || !phone.trim() || !password) {
+      setError('Enter your name, email, phone number, and password');
+      return;
+    }
+    if (phone.replace(/\D/g, '').length < 10) {
+      setError('Enter a valid 10-digit phone number');
+      return;
+    }
     if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
     if (role === 'lifeguard' && certificateVerifiedKey !== certificateKey) {
       setError('Verify your lifeguard certificate before creating your account');
@@ -85,6 +93,7 @@ export default function RegisterScreen() {
       const result = await register({
         name: name.trim(),
         email: email.trim().toLowerCase(),
+        phone: phone.trim(),
         password,
         role,
         certifications: role === 'lifeguard'
@@ -136,6 +145,14 @@ export default function RegisterScreen() {
         <View style={styles.form}>
           <Input label="Full name *" value={name} onChangeText={setName} placeholder="Alex Johnson" autoComplete="name" />
           <Input label="Email *" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholder="you@example.com" />
+          <Input
+            label="Phone number *"
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            autoComplete="tel"
+            placeholder="(555) 123-4567"
+          />
           <Input label="Password *" value={password} onChangeText={setPassword} secureTextEntry placeholder="Min 8 characters" />
 
           {role === 'lifeguard' && (

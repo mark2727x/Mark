@@ -7,6 +7,8 @@
  */
 
 export interface UserUpdate {
+  /** @minLength 10 */
+  phone?: string;
   /** @minLength 2 */
   name?: string;
   bio?: string;

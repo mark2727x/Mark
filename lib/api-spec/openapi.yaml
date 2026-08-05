@@ -559,11 +559,14 @@ components:
     # ── Auth ──────────────────────────────────────────────────────────────────
     RegisterInput:
       type: object
-      required: [email, password, name, role]
+      required: [email, password, name, role, phone]
       properties:
         email:
           type: string
-          
+        phone:
+          type: string
+          minLength: 10
+          description: Phone number used for contact after a shift is picked up
         password:
           type: string
           minLength: 8
@@ -677,6 +680,9 @@ components:
           type: number
         email:
           type: string
+        phone:
+          type: string
+          description: Present for the authenticated user and assigned shift participants only
         name:
           type: string
         role:
@@ -708,6 +714,9 @@ components:
     UserUpdate:
       type: object
       properties:
+        phone:
+          type: string
+          minLength: 10
         name:
           type: string
           minLength: 2
@@ -743,6 +752,7 @@ components:
           type: string
         location:
           type: string
+          description: Exact street address, city, state, and ZIP code
         payRate:
           type: number
           description: Hourly pay in USD
@@ -772,6 +782,14 @@ components:
           oneOf:
             - $ref: "#/components/schemas/User"
             - type: "null"
+        managerContact:
+          oneOf:
+            - $ref: "#/components/schemas/Contact"
+            - type: "null"
+        workerContact:
+          oneOf:
+            - $ref: "#/components/schemas/Contact"
+            - type: "null"
         createdAt:
           type: string
           format: date-time
@@ -792,6 +810,8 @@ components:
           type: string
         location:
           type: string
+          minLength: 10
+          description: Exact street address, city, state, and ZIP code
         payRate:
           type: number
         totalHours:
@@ -813,6 +833,7 @@ components:
           type: string
         location:
           type: string
+          minLength: 10
         payRate:
           type: number
         totalHours:
@@ -828,6 +849,15 @@ components:
           type: string
 
     # ── Ratings ───────────────────────────────────────────────────────────────
+    Contact:
+      type: object
+      required: [name, phone]
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+
     Rating:
       type: object
       required: [id, raterId, rateeId, shiftId, score, createdAt]
