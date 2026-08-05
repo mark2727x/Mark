@@ -53,7 +53,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthResponse"
+                $ref: "#/components/schemas/RegistrationResponse"
         "400":
           description: Validation error
           content:
@@ -91,6 +91,57 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/verify-email:
+    post:
+      operationId: verifyEmail
+      tags: [auth]
+      summary: Verify an email address with a one-time code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyEmailInput"
+      responses:
+        "200":
+          description: Verified and authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/resend-verification:
+    post:
+      operationId: resendVerification
+      tags: [auth]
+      summary: Generate a replacement verification code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResendVerificationInput"
+      responses:
+        "200":
+          description: Code requested
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verificationRequired:
+                    type: boolean
+                  email:
+                    type: string
+                  verificationCode:
+                    type: [string, "null"]
 
   /auth/me:
     get:
@@ -518,6 +569,24 @@ components:
         password:
           type: string
 
+    VerifyEmailInput:
+      type: object
+      required: [email, code]
+      properties:
+        email:
+          type: string
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+
+    ResendVerificationInput:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+
     AuthResponse:
       type: object
       required: [token, user]
@@ -526,6 +595,18 @@ components:
           type: string
         user:
           $ref: "#/components/schemas/User"
+
+    RegistrationResponse:
+      type: object
+      required: [verificationRequired, email]
+      properties:
+        verificationRequired:
+          type: boolean
+        email:
+          type: string
+        verificationCode:
+          type: [string, "null"]
+          description: Development-only code when no email provider is connected
 
     # ── Users ─────────────────────────────────────────────────────────────────
     User:

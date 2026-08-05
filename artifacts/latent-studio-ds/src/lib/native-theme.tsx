@@ -2,7 +2,7 @@
  * Native (React Native / Expo) theme derived from tokens.json.
  * Import this in Expo apps; do NOT import the web index.css.
  */
-import { tokens } from "../generated/tokens.tsx";
+import { tokens } from "../generated/tokens";
 
 // Convert the first CSS length unit (rem or px) to a number of dp
 function cssLengthToPx(val: string): number {
@@ -35,4 +35,6 @@ export const nativeTheme = {
 } as const;
 
 export type NativeTheme = typeof nativeTheme;
-export type NativeColorPalette = typeof nativeTheme.colors.dark;
+export type NativeColorPalette =
+  | typeof nativeTheme.colors.light
+  | typeof nativeTheme.colors.dark;

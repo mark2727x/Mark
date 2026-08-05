@@ -4,7 +4,7 @@
  */
 import React from "react";
 import { Text, type TextProps, StyleSheet } from "react-native";
-import { nativeTheme } from "../../lib/native-theme.tsx";
+import { nativeTheme } from "../../lib/native-theme";
 
 const c = nativeTheme.colors.dark;
 const f = nativeTheme.fontFamily;

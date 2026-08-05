@@ -24,9 +24,16 @@ export default function LoginScreen() {
     setError('');
     setLoading(true);
     try {
-      await login(email.trim().toLowerCase(), password);
-      // auth context + index.tsx will redirect automatically
+      const user = await login(email.trim().toLowerCase(), password);
+      router.replace(user.role === 'lifeguard' ? '/(lifeguard)/feed' : '/(manager)/shifts');
     } catch (e: any) {
+      if (e?.data?.verificationRequired) {
+        router.replace({
+          pathname: '/(auth)/verify',
+          params: { email: e.data.email ?? email.trim().toLowerCase() },
+        });
+        return;
+      }
       setError(e.message ?? 'Login failed');
     } finally {
       setLoading(false);

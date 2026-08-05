@@ -49,13 +49,17 @@ export default function RegisterScreen() {
     setError('');
     setLoading(true);
     try {
-      await register({
+      const result = await register({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         password,
         role,
         certifications: certifications ? certifications.split(',').map(s => s.trim()).filter(Boolean) : undefined,
         zelleId: zelleId.trim() || undefined,
+      });
+      router.replace({
+        pathname: '/(auth)/verify',
+        params: { email: result.email, code: result.verificationCode ?? '' },
       });
     } catch (e: any) {
       setError(e.message ?? 'Registration failed');

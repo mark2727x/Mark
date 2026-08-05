@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
+import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "crypto";
 import { db, usersTable } from "@workspace/db";
 import { RegisterBody, LoginBody } from "@workspace/api-zod";
 
@@ -35,6 +35,18 @@ function makeToken(userId: number): string {
   // this remains valid when the API workflow is rebuilt or restarted.
   const payload = `${userId}.${Math.floor(Date.now() / 1000)}.${randomBytes(16).toString("base64url")}`;
   return `${Buffer.from(payload).toString("base64url")}.${signSession(payload)}`;
+}
+
+function makeVerificationCode(): string {
+  return String(randomInt(100000, 1000000));
+}
+
+function verificationExpiry(): Date {
+  return new Date(Date.now() + 15 * 60 * 1000);
+}
+
+function issueAuth(user: any) {
+  return { token: makeToken(user.id), user: sanitizeUser(user) };
 }
 
 export function getUserIdFromToken(token: string): number | null {
@@ -97,6 +109,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   }
 
   const passwordHash = hashPassword(password);
+  const verificationCode = makeVerificationCode();
   const [user] = await db.insert(usersTable).values({
     email,
     passwordHash,
@@ -105,11 +118,19 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     certifications: certifications ?? null,
     zelleId: zelleId ?? null,
     bio: bio ?? null,
+    emailVerified: false,
+    emailVerificationCode: verificationCode,
+    emailVerificationExpiresAt: verificationExpiry(),
   }).returning();
 
-  const token = makeToken(user.id);
-
-  res.status(201).json({ token, user: sanitizeUser(user) });
+  // Resend was not connected for this project. In development, return the
+  // code so registration remains testable without silently claiming an email
+  // was delivered. A mail integration can replace this response later.
+  res.status(201).json({
+    verificationRequired: true,
+    email: user.email,
+    verificationCode: process.env.NODE_ENV === "production" ? undefined : verificationCode,
+  });
 });
 
 router.post("/auth/login", async (req, res): Promise<void> => {
@@ -127,9 +148,82 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  const token = makeToken(user.id);
+  if (!user.emailVerified) {
+    res.status(403).json({
+      error: "Email verification required",
+      verificationRequired: true,
+      email: user.email,
+    });
+    return;
+  }
 
-  res.json({ token, user: sanitizeUser(user) });
+  res.json(issueAuth(user));
+});
+
+router.post("/auth/verify-email", async (req, res): Promise<void> => {
+  const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  const code = typeof req.body?.code === "string" ? req.body.code.trim() : "";
+  if (!email || !/^\d{6}$/.test(code)) {
+    res.status(400).json({ error: "Enter the email and 6-digit verification code" });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+  if (!user) {
+    res.status(400).json({ error: "Invalid verification code" });
+    return;
+  }
+  if (user.emailVerified) {
+    res.json(issueAuth(user));
+    return;
+  }
+  if (
+    !user.emailVerificationCode ||
+    user.emailVerificationCode !== code ||
+    !user.emailVerificationExpiresAt ||
+    user.emailVerificationExpiresAt.getTime() < Date.now()
+  ) {
+    res.status(400).json({ error: "Invalid or expired verification code" });
+    return;
+  }
+
+  const [verified] = await db.update(usersTable)
+    .set({
+      emailVerified: true,
+      emailVerificationCode: null,
+      emailVerificationExpiresAt: null,
+    })
+    .where(eq(usersTable.id, user.id))
+    .returning();
+
+  res.json(issueAuth(verified));
+});
+
+router.post("/auth/resend-verification", async (req, res): Promise<void> => {
+  const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+  if (!user) {
+    res.status(200).json({ verificationRequired: true, email });
+    return;
+  }
+  if (user.emailVerified) {
+    res.json({ verificationRequired: false });
+    return;
+  }
+
+  const verificationCode = makeVerificationCode();
+  await db.update(usersTable)
+    .set({
+      emailVerificationCode: verificationCode,
+      emailVerificationExpiresAt: verificationExpiry(),
+    })
+    .where(eq(usersTable.id, user.id));
+
+  res.json({
+    verificationRequired: true,
+    email,
+    verificationCode: process.env.NODE_ENV === "production" ? undefined : verificationCode,
+  });
 });
 
 router.get("/auth/me", requireAuth, async (req: any, res): Promise<void> => {

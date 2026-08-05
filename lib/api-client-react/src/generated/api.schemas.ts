@@ -47,6 +47,19 @@ export interface LoginInput {
   password: string;
 }
 
+export interface VerifyEmailInput {
+  email: string;
+  /**
+     * @minLength 6
+     * @maxLength 6
+     */
+  code: string;
+}
+
+export interface ResendVerificationInput {
+  email: string;
+}
+
 export type UserRole = typeof UserRole[keyof typeof UserRole];
 
 
@@ -74,6 +87,16 @@ export interface User {
 export interface AuthResponse {
   token: string;
   user: User;
+}
+
+export interface RegistrationResponse {
+  verificationRequired: boolean;
+  email: string;
+  /**
+     * Development-only code when no email provider is connected
+     * @nullable
+     */
+  verificationCode?: string | null;
 }
 
 export interface UserUpdate {
@@ -165,6 +188,13 @@ export interface RatingInput {
   score: number;
   comment?: string;
 }
+
+export type ResendVerification200 = {
+  verificationRequired?: boolean;
+  email?: string;
+  /** @nullable */
+  verificationCode?: string | null;
+};
 
 export type ListShiftsParams = {
 /**

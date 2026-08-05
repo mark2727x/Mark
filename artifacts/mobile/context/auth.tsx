@@ -44,8 +44,10 @@ interface AuthActions {
     certifications?: string[];
     zelleId?: string;
     bio?: string;
-  }): Promise<void>;
-  login(email: string, password: string): Promise<void>;
+  }): Promise<{ email: string; verificationCode?: string }>;
+  login(email: string, password: string): Promise<AuthUser>;
+  verifyEmail(email: string, code: string): Promise<AuthUser>;
+  resendVerification(email: string): Promise<{ verificationCode?: string }>;
   logout(): Promise<void>;
   refreshUser(): Promise<void>;
 }
@@ -60,7 +62,12 @@ async function apiFetch(path: string, opts: RequestInit = {}) {
     headers: { 'Content-Type': 'application/json', ...(opts.headers ?? {}) },
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error ?? res.statusText);
+  if (!res.ok) {
+    const error = new Error(json.error ?? res.statusText) as Error & { data?: any; status?: number };
+    error.data = json;
+    error.status = res.status;
+    throw error;
+  }
   return json;
 }
 
@@ -92,8 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    await AsyncStorage.setItem(TOKEN_KEY, json.token);
-    setState({ token: json.token, user: json.user, loading: false });
+    return { email: json.email, verificationCode: json.verificationCode };
   }, []);
 
   const login: AuthActions['login'] = useCallback(async (email, password) => {
@@ -103,6 +109,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     await AsyncStorage.setItem(TOKEN_KEY, json.token);
     setState({ token: json.token, user: json.user, loading: false });
+    return json.user;
+  }, []);
+
+  const verifyEmail: AuthActions['verifyEmail'] = useCallback(async (email, code) => {
+    const json = await apiFetch('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    });
+    await AsyncStorage.setItem(TOKEN_KEY, json.token);
+    setState({ token: json.token, user: json.user, loading: false });
+    return json.user;
+  }, []);
+
+  const resendVerification: AuthActions['resendVerification'] = useCallback(async (email) => {
+    const json = await apiFetch('/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+    return { verificationCode: json.verificationCode };
   }, []);
 
   const logout: AuthActions['logout'] = useCallback(async () => {
@@ -119,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [state.token]);
 
   return (
-    <AuthContext.Provider value={{ ...state, register, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ ...state, register, login, verifyEmail, resendVerification, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

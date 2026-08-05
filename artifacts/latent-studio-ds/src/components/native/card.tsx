@@ -3,7 +3,7 @@
  */
 import React from "react";
 import { View, StyleSheet, type ViewProps } from "react-native";
-import { nativeTheme } from "../../lib/native-theme.tsx";
+import { nativeTheme } from "../../lib/native-theme";
 
 const c = nativeTheme.colors.dark;
 const r = nativeTheme.radius;

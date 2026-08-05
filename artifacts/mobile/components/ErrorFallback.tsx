@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColors } from '@/hooks/useColors';
+import { useColors } from '@workspace/latent-studio-ds/hooks/use-colors';
 import { Feather } from '@expo/vector-icons';
 import { reloadAppAsync } from 'expo';
 

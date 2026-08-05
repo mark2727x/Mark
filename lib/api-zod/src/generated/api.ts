@@ -36,19 +36,9 @@ export const RegisterBody = zod.object({
 })
 
 export const RegisterResponse = zod.object({
-  "token": zod.string(),
-  "user": zod.object({
-  "id": zod.number(),
+  "verificationRequired": zod.boolean(),
   "email": zod.string(),
-  "name": zod.string(),
-  "role": zod.enum(['lifeguard', 'manager']),
-  "bio": zod.string().nullish(),
-  "certifications": zod.array(zod.string()).nullish(),
-  "zelleId": zod.string().nullish(),
-  "ratingAvg": zod.number(),
-  "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
-})
+  "verificationCode": zod.string().nullish().describe('Development-only code when no email provider is connected')
 })
 
 
@@ -74,6 +64,50 @@ export const LoginResponse = zod.object({
   "ratingCount": zod.number(),
   "createdAt": zod.coerce.date()
 })
+})
+
+
+/**
+ * @summary Verify an email address with a one-time code
+ */
+export const verifyEmailBodyCodeMin = 6;
+export const verifyEmailBodyCodeMax = 6;
+
+
+
+export const VerifyEmailBody = zod.object({
+  "email": zod.string(),
+  "code": zod.string().min(verifyEmailBodyCodeMin).max(verifyEmailBodyCodeMax)
+})
+
+export const VerifyEmailResponse = zod.object({
+  "token": zod.string(),
+  "user": zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "name": zod.string(),
+  "role": zod.enum(['lifeguard', 'manager']),
+  "bio": zod.string().nullish(),
+  "certifications": zod.array(zod.string()).nullish(),
+  "zelleId": zod.string().nullish(),
+  "ratingAvg": zod.number(),
+  "ratingCount": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+})
+
+
+/**
+ * @summary Generate a replacement verification code
+ */
+export const ResendVerificationBody = zod.object({
+  "email": zod.string()
+})
+
+export const ResendVerificationResponse = zod.object({
+  "verificationRequired": zod.boolean().optional(),
+  "email": zod.string().optional(),
+  "verificationCode": zod.string().nullish()
 })
 
 
