@@ -13,12 +13,23 @@ function viewerIdFromRequest(req: any): number | undefined {
 }
 
 function hasExactLocation(value: string): boolean {
-  return /^\d+\s+[^,]+,\s*[^,]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?$/i.test(value.trim());
+  const parts = value.split(",").map((part) => part.trim());
+  if (parts.length !== 3) return false;
+
+  const [street, city, stateAndZip] = parts;
+  return (
+    street.length >= 3 &&
+    city.length >= 2 &&
+    /^[A-Z]{2}\s+\d{5}(?:-\d{4})?$/i.test(stateAndZip)
+  );
 }
 
-function hasValidFutureStartTime(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) return false;
-  const time = new Date(value).getTime();
+function hasValidFutureStartTime(value: unknown): boolean {
+  const time = value instanceof Date
+    ? value.getTime()
+    : typeof value === "string"
+      ? new Date(value).getTime()
+      : NaN;
   return Number.isFinite(time) && time > Date.now();
 }
 
