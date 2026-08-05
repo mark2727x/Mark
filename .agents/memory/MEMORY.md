@@ -3,3 +3,4 @@
 - [Design system status](ds-status.md) — Latent Studio DS tokens written; waiting on user approval before applying to mobile screens.
 - [Mobile auth sessions](mobile-auth-sessions.md) — Persisted signed tokens are required; in-memory token maps invalidate users whenever the API workflow restarts.
 - [Certificate verification](certificate-verification.md) — Lifeguard signup must use an issuing association lookup; Red Cross currently has no stable public API.
+- [Expo device startup](expo-device-startup.md) — Avoid globally initializing unused native modules in Expo Go; they can crash phones while web bundling remains clean.
