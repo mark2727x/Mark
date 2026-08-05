@@ -170,8 +170,12 @@ router.post("/shifts/:id/pickup", requireAuth, async (req: any, res): Promise<vo
 
   const [updated] = await db.update(shiftsTable)
     .set({ status: "filled", workerId: req.userId })
-    .where(eq(shiftsTable.id, id))
+    .where(and(eq(shiftsTable.id, id), eq(shiftsTable.status, "open")))
     .returning();
+  if (!updated) {
+    res.status(400).json({ error: "Shift is no longer available" });
+    return;
+  }
   res.json(await enrichShift(updated, req.userId));
 });
 

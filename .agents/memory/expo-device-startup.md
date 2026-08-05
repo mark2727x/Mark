@@ -17,3 +17,9 @@ Date and time selection on the manager post form should remain dependency-free a
 **Why:** The Expo Go/device runtime has previously failed on optional native modules even when web bundling succeeded, and the date/time flow can be implemented safely with React Native primitives.
 
 **How to apply:** Prefer custom calendar/time selection UI for this app unless a native picker dependency is explicitly approved and verified on the physical device.
+
+Concurrent API and Expo restarts can briefly make Metro fail while watching the API build directory.
+
+**Why:** The API rebuild can remove its `dist` directory while Metro is scanning workspace dependencies, producing a transient missing-directory watcher error.
+
+**How to apply:** If Expo restart fails with an `ENOENT` watch error for `api-server/dist`, let the API finish rebuilding and restart Expo once more.

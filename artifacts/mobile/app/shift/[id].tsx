@@ -61,7 +61,8 @@ export default function ShiftDetailScreen() {
 
   const pickupMutation = useMutation({
     mutationFn: () => apiFetch(`/shifts/${id}/pickup`, { method: 'POST' }),
-    onSuccess: () => {
+    onSuccess: (updatedShift) => {
+      qc.setQueryData(['shift', id], updatedShift);
       qc.invalidateQueries({ queryKey: ['shift', id] });
       qc.invalidateQueries({ queryKey: ['shifts', 'open'] });
       qc.invalidateQueries({ queryKey: ['user-shifts', user?.id] });
@@ -84,13 +85,6 @@ export default function ShiftDetailScreen() {
       qc.invalidateQueries({ queryKey: ['manager-shifts', user?.id] });
     },
   });
-
-  function handlePickup() {
-    Alert.alert('Pick up shift?', 'You\'ll be assigned to this shift.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Pick up', onPress: () => pickupMutation.mutate() },
-    ]);
-  }
 
   function handleDrop() {
     Alert.alert('Drop shift?', 'The shift will return to the open pool.', [
@@ -256,7 +250,12 @@ export default function ShiftDetailScreen() {
         {/* Actions */}
         <View style={styles.actions}>
           {isLifeguard && shift.status === 'open' && !isAssigned && (
-            <Button size="lg" loading={pickupMutation.isPending} onPress={handlePickup} style={styles.actionBtn}>
+            <Button
+              size="lg"
+              loading={pickupMutation.isPending}
+              onPress={() => pickupMutation.mutate()}
+              style={styles.actionBtn}
+            >
               Pick up shift — earn ${total}
             </Button>
           )}
