@@ -21,4 +21,10 @@ export interface User {
   ratingAvg: number;
   ratingCount: number;
   createdAt: Date;
+  /** @nullable */
+  certificateAssociation?: string | null;
+  /** @nullable */
+  certificateType?: string | null;
+  /** @nullable */
+  certificateVerifiedAt?: Date | null;
 }

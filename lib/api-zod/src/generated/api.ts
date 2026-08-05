@@ -32,13 +32,34 @@ export const RegisterBody = zod.object({
   "role": zod.enum(['lifeguard', 'manager']),
   "certifications": zod.array(zod.string()).nullish().describe('Certifications the lifeguard holds (e.g. [\"Lifeguard\", \"CPR\/AED\", \"WSI\"])'),
   "zelleId": zod.string().nullish().describe('Zelle phone\/email for payment'),
-  "bio": zod.string().nullish()
+  "bio": zod.string().nullish(),
+  "certificateAssociation": zod.string().nullish().describe('Issuing association for a lifeguard certificate'),
+  "certificateType": zod.string().nullish().describe('Certificate type, for example Lifeguarding'),
+  "certificateNumber": zod.string().nullish().describe('Certificate number or ID from the issuing association')
 })
 
 export const RegisterResponse = zod.object({
   "verificationRequired": zod.boolean(),
   "email": zod.string(),
   "verificationCode": zod.string().nullish().describe('Development-only code when no email provider is connected')
+})
+
+
+/**
+ * @summary Verify a lifeguard certificate with its issuing association
+ */
+export const VerifyCertificateBody = zod.object({
+  "association": zod.string(),
+  "certificateType": zod.string(),
+  "certificateNumber": zod.string()
+})
+
+export const VerifyCertificateResponse = zod.object({
+  "verified": zod.boolean(),
+  "association": zod.string(),
+  "certificateType": zod.string(),
+  "certificateNumber": zod.string(),
+  "verificationUrl": zod.string().optional()
 })
 
 
@@ -62,7 +83,10 @@ export const LoginResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 })
 })
 
@@ -92,7 +116,10 @@ export const VerifyEmailResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 })
 })
 
@@ -124,7 +151,10 @@ export const GetMeResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 })
 
 
@@ -160,7 +190,10 @@ export const ListShiftsResponseItem = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }).optional(),
   "workerId": zod.number().nullish(),
   "worker": zod.union([zod.object({
@@ -173,7 +206,10 @@ export const ListShiftsResponseItem = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }),zod.null()]).optional(),
   "createdAt": zod.coerce.date()
 })
@@ -216,7 +252,10 @@ export const CreateShiftResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }).optional(),
   "workerId": zod.number().nullish(),
   "worker": zod.union([zod.object({
@@ -229,7 +268,10 @@ export const CreateShiftResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }),zod.null()]).optional(),
   "createdAt": zod.coerce.date()
 })
@@ -264,7 +306,10 @@ export const GetShiftResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }).optional(),
   "workerId": zod.number().nullish(),
   "worker": zod.union([zod.object({
@@ -277,7 +322,10 @@ export const GetShiftResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }),zod.null()]).optional(),
   "createdAt": zod.coerce.date()
 })
@@ -323,7 +371,10 @@ export const UpdateShiftResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }).optional(),
   "workerId": zod.number().nullish(),
   "worker": zod.union([zod.object({
@@ -336,7 +387,10 @@ export const UpdateShiftResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }),zod.null()]).optional(),
   "createdAt": zod.coerce.date()
 })
@@ -381,7 +435,10 @@ export const PickupShiftResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }).optional(),
   "workerId": zod.number().nullish(),
   "worker": zod.union([zod.object({
@@ -394,7 +451,10 @@ export const PickupShiftResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }),zod.null()]).optional(),
   "createdAt": zod.coerce.date()
 })
@@ -429,7 +489,10 @@ export const CompleteShiftResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }).optional(),
   "workerId": zod.number().nullish(),
   "worker": zod.union([zod.object({
@@ -442,7 +505,10 @@ export const CompleteShiftResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }),zod.null()]).optional(),
   "createdAt": zod.coerce.date()
 })
@@ -477,7 +543,10 @@ export const DropShiftResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }).optional(),
   "workerId": zod.number().nullish(),
   "worker": zod.union([zod.object({
@@ -490,7 +559,10 @@ export const DropShiftResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }),zod.null()]).optional(),
   "createdAt": zod.coerce.date()
 })
@@ -513,7 +585,10 @@ export const GetUserResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 })
 
 
@@ -541,7 +616,10 @@ export const UpdateMeResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 })
 
 
@@ -574,7 +652,10 @@ export const GetUserShiftsResponseItem = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }).optional(),
   "workerId": zod.number().nullish(),
   "worker": zod.union([zod.object({
@@ -587,7 +668,10 @@ export const GetUserShiftsResponseItem = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }),zod.null()]).optional(),
   "createdAt": zod.coerce.date()
 })
@@ -625,7 +709,10 @@ export const CreateRatingResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }).optional(),
   "rateeId": zod.number(),
   "ratee": zod.object({
@@ -638,7 +725,10 @@ export const CreateRatingResponse = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }).optional(),
   "shiftId": zod.number(),
   "score": zod.number().min(1).max(createRatingResponseScoreMax),
@@ -671,7 +761,10 @@ export const GetUserRatingsResponseItem = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }).optional(),
   "rateeId": zod.number(),
   "ratee": zod.object({
@@ -684,7 +777,10 @@ export const GetUserRatingsResponseItem = zod.object({
   "zelleId": zod.string().nullish(),
   "ratingAvg": zod.number(),
   "ratingCount": zod.number(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "certificateAssociation": zod.string().nullish(),
+  "certificateType": zod.string().nullish(),
+  "certificateVerifiedAt": zod.coerce.date().nullish()
 }).optional(),
   "shiftId": zod.number(),
   "score": zod.number().min(1).max(getUserRatingsResponseScoreMax),

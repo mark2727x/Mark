@@ -67,6 +67,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /auth/verify-certificate:
+    post:
+      operationId: verifyCertificate
+      tags: [auth]
+      summary: Verify a lifeguard certificate with its issuing association
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyCertificateInput"
+      responses:
+        "200":
+          description: Certificate lookup result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CertificateVerificationResponse"
+        "400":
+          description: Invalid certificate details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /auth/login:
     post:
       operationId: login
@@ -558,6 +583,41 @@ components:
           description: Zelle phone/email for payment
         bio:
           type: ["string", "null"]
+        certificateAssociation:
+          type: ["string", "null"]
+          description: Issuing association for a lifeguard certificate
+        certificateType:
+          type: ["string", "null"]
+          description: Certificate type, for example Lifeguarding
+        certificateNumber:
+          type: ["string", "null"]
+          description: Certificate number or ID from the issuing association
+
+    VerifyCertificateInput:
+      type: object
+      required: [association, certificateType, certificateNumber]
+      properties:
+        association:
+          type: string
+        certificateType:
+          type: string
+        certificateNumber:
+          type: string
+
+    CertificateVerificationResponse:
+      type: object
+      required: [verified, association, certificateType, certificateNumber]
+      properties:
+        verified:
+          type: boolean
+        association:
+          type: string
+        certificateType:
+          type: string
+        certificateNumber:
+          type: string
+        verificationUrl:
+          type: string
 
     LoginInput:
       type: object
@@ -636,6 +696,13 @@ components:
           type: number
         createdAt:
           type: string
+          format: date-time
+        certificateAssociation:
+          type: ["string", "null"]
+        certificateType:
+          type: ["string", "null"]
+        certificateVerifiedAt:
+          type: ["string", "null"]
           format: date-time
 
     UserUpdate:

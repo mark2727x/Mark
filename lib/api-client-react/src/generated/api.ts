@@ -21,6 +21,7 @@ import type {
 
 import type {
   AuthResponse,
+  CertificateVerificationResponse,
   ErrorResponse,
   HealthStatus,
   ListShiftsParams,
@@ -36,6 +37,7 @@ import type {
   ShiftUpdate,
   User,
   UserUpdate,
+  VerifyCertificateInput,
   VerifyEmailInput
 } from './api.schemas';
 
@@ -212,6 +214,77 @@ export const useRegister = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getRegisterMutationOptions(options));
+    }
+
+export const getVerifyCertificateUrl = () => {
+
+
+
+
+  return `/api/auth/verify-certificate`
+}
+
+/**
+ * @summary Verify a lifeguard certificate with its issuing association
+ */
+export const verifyCertificate = async (verifyCertificateInput: VerifyCertificateInput, options?: Parameters<typeof customFetch>[1]): Promise<CertificateVerificationResponse> => {
+
+  return customFetch<CertificateVerificationResponse>(getVerifyCertificateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(verifyCertificateInput)
+  }
+);}
+
+
+
+
+
+export const getVerifyCertificateMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyCertificate>>, TError,{data: BodyType<VerifyCertificateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyCertificate>>, TError,{data: BodyType<VerifyCertificateInput>}, TContext> => {
+
+const mutationKey = ['verifyCertificate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyCertificate>>, {data: BodyType<VerifyCertificateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  verifyCertificate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyCertificateMutationResult = NonNullable<Awaited<ReturnType<typeof verifyCertificate>>>
+    export type VerifyCertificateMutationBody = BodyType<VerifyCertificateInput>
+    export type VerifyCertificateMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Verify a lifeguard certificate with its issuing association
+ */
+export const useVerifyCertificate = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyCertificate>>, TError,{data: BodyType<VerifyCertificateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof verifyCertificate>>,
+        TError,
+        {data: BodyType<VerifyCertificateInput>},
+        TContext
+      > => {
+      return useMutation(getVerifyCertificateMutationOptions(options));
     }
 
 export const getLoginUrl = () => {

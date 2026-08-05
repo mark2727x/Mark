@@ -2,3 +2,4 @@
 - [Orval generated names](orval-generated-names.md) — generated Zod schema names differ from OpenAPI schema names; use the generated file (api-zod/src/generated/api.ts) as source of truth when importing in routes.
 - [Design system status](ds-status.md) — Latent Studio DS tokens written; waiting on user approval before applying to mobile screens.
 - [Mobile auth sessions](mobile-auth-sessions.md) — Persisted signed tokens are required; in-memory token maps invalidate users whenever the API workflow restarts.
+- [Certificate verification](certificate-verification.md) — Lifeguard signup must use an issuing association lookup; Red Cross currently has no stable public API.

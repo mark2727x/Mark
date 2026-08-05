@@ -40,6 +40,35 @@ export interface RegisterInput {
   zelleId?: string | null;
   /** @nullable */
   bio?: string | null;
+  /**
+     * Issuing association for a lifeguard certificate
+     * @nullable
+     */
+  certificateAssociation?: string | null;
+  /**
+     * Certificate type, for example Lifeguarding
+     * @nullable
+     */
+  certificateType?: string | null;
+  /**
+     * Certificate number or ID from the issuing association
+     * @nullable
+     */
+  certificateNumber?: string | null;
+}
+
+export interface VerifyCertificateInput {
+  association: string;
+  certificateType: string;
+  certificateNumber: string;
+}
+
+export interface CertificateVerificationResponse {
+  verified: boolean;
+  association: string;
+  certificateType: string;
+  certificateNumber: string;
+  verificationUrl?: string;
 }
 
 export interface LoginInput {
@@ -82,6 +111,12 @@ export interface User {
   ratingAvg: number;
   ratingCount: number;
   createdAt: string;
+  /** @nullable */
+  certificateAssociation?: string | null;
+  /** @nullable */
+  certificateType?: string | null;
+  /** @nullable */
+  certificateVerifiedAt?: string | null;
 }
 
 export interface AuthResponse {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, StyleSheet, ScrollView, StatusBar, TouchableOpacity,
+  View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -32,20 +32,53 @@ function RolePill({
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { register } = useAuth();
+  const { register, verifyCertificate } = useAuth();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>('lifeguard');
-  const [certifications, setCertifications] = useState('');
+  const [certificateAssociation, setCertificateAssociation] = useState('American Red Cross');
+  const [certificateType, setCertificateType] = useState('Lifeguarding');
+  const [certificateNumber, setCertificateNumber] = useState('');
+  const [certificateVerifiedKey, setCertificateVerifiedKey] = useState('');
+  const [certificateLoading, setCertificateLoading] = useState(false);
+  const [additionalCertifications, setAdditionalCertifications] = useState('');
   const [zelleId, setZelleId] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const certificateKey = `${certificateAssociation}|${certificateType}|${certificateNumber.trim().toUpperCase()}`;
+
+  async function handleVerifyCertificate() {
+    if (!certificateAssociation || !certificateType || !certificateNumber.trim()) {
+      setError('Select your association and certificate type, then enter your certificate number');
+      return;
+    }
+    setError('');
+    setCertificateLoading(true);
+    try {
+      await verifyCertificate({
+        association: certificateAssociation,
+        certificateType,
+        certificateNumber: certificateNumber.trim(),
+      });
+      setCertificateVerifiedKey(certificateKey);
+    } catch (e: any) {
+      setCertificateVerifiedKey('');
+      setError(e.message ?? 'Certificate could not be verified');
+    } finally {
+      setCertificateLoading(false);
+    }
+  }
+
   async function handleRegister() {
     if (!name || !email || !password) { setError('Fill in all required fields'); return; }
     if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
+    if (role === 'lifeguard' && certificateVerifiedKey !== certificateKey) {
+      setError('Verify your lifeguard certificate before creating your account');
+      return;
+    }
     setError('');
     setLoading(true);
     try {
@@ -54,7 +87,12 @@ export default function RegisterScreen() {
         email: email.trim().toLowerCase(),
         password,
         role,
-        certifications: certifications ? certifications.split(',').map(s => s.trim()).filter(Boolean) : undefined,
+        certifications: role === 'lifeguard'
+          ? [certificateType, ...additionalCertifications.split(',').map(s => s.trim()).filter(Boolean)]
+          : undefined,
+        certificateAssociation: role === 'lifeguard' ? certificateAssociation : undefined,
+        certificateType: role === 'lifeguard' ? certificateType : undefined,
+        certificateNumber: role === 'lifeguard' ? certificateNumber.trim() : undefined,
         zelleId: zelleId.trim() || undefined,
       });
       router.replace({
@@ -102,11 +140,76 @@ export default function RegisterScreen() {
 
           {role === 'lifeguard' && (
             <>
+              <View style={styles.certificateSection}>
+                <Label style={styles.fieldLabel}>Certificate association *</Label>
+                <View style={styles.optionRow}>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      setCertificateAssociation('American Red Cross');
+                      setCertificateVerifiedKey('');
+                    }}
+                    style={[styles.option, certificateAssociation === 'American Red Cross' && styles.optionSelected]}
+                  >
+                    <Label style={[styles.optionText, certificateAssociation === 'American Red Cross' && styles.optionTextSelected]}>
+                      American Red Cross
+                    </Label>
+                  </TouchableOpacity>
+                </View>
+                <Caption style={styles.helper}>
+                  More associations will be added after their verification systems are connected.
+                </Caption>
+              </View>
+              <View style={styles.certificateSection}>
+                <Label style={styles.fieldLabel}>Certificate type *</Label>
+                <View style={styles.optionRow}>
+                  {['Lifeguarding', 'CPR/AED', 'Water Safety Instructor'].map((type) => (
+                    <TouchableOpacity
+                      key={type}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        setCertificateType(type);
+                        setCertificateVerifiedKey('');
+                      }}
+                      style={[styles.option, certificateType === type && styles.optionSelected]}
+                    >
+                      <Label style={[styles.optionText, certificateType === type && styles.optionTextSelected]}>
+                        {type}
+                      </Label>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
               <Input
-                label="Certifications (comma-separated)"
-                value={certifications}
-                onChangeText={setCertifications}
-                placeholder="Lifeguard, CPR/AED, WSI"
+                label="Certificate number *"
+                value={certificateNumber}
+                onChangeText={(value) => {
+                  setCertificateNumber(value.toUpperCase());
+                  setCertificateVerifiedKey('');
+                }}
+                placeholder="Enter the ID on your certificate"
+                autoCapitalize="characters"
+                autoCorrect={false}
+              />
+              <TouchableOpacity
+                onPress={() => Linking.openURL('https://www.redcross.org/take-a-class/digital-certificate')}
+                activeOpacity={0.75}
+              >
+                <Caption style={styles.lookupLink}>Open the official Red Cross certificate lookup ↗</Caption>
+              </TouchableOpacity>
+              <Button
+                variant="outline"
+                loading={certificateLoading}
+                onPress={handleVerifyCertificate}
+                style={styles.verifyBtn}
+              >
+                {certificateVerifiedKey === certificateKey ? 'Certificate verified' : 'Verify certificate'}
+              </Button>
+              <Input
+                label="Additional certifications (optional)"
+                value={additionalCertifications}
+                onChangeText={setAdditionalCertifications}
+                placeholder="CPR/AED, WSI"
                 autoCapitalize="words"
               />
               <Input
@@ -154,6 +257,18 @@ const styles = StyleSheet.create({
   rolePillTitleSelected: { color: c.primary },
   rolePillDesc: { color: c.mutedForeground },
   form: { gap: 16 },
+  certificateSection: { gap: 8 },
+  fieldLabel: { color: c.foreground },
+  optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  option: {
+    borderWidth: 1, borderColor: c.border, borderRadius: r, paddingHorizontal: 12, paddingVertical: 10,
+  },
+  optionSelected: { borderColor: c.primary, backgroundColor: `${c.primary}18` },
+  optionText: { color: c.mutedForeground, fontSize: 12 },
+  optionTextSelected: { color: c.primary },
+  helper: { color: c.mutedForeground, lineHeight: 17 },
+  lookupLink: { color: c.primary, textDecorationLine: 'underline' },
+  verifyBtn: { marginTop: 2 },
   error: { color: c.destructive, fontSize: 13 },
   btn: { marginTop: 8 },
   switchRow: { marginTop: 28, alignItems: 'center' },

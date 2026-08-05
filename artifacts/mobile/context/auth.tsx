@@ -23,6 +23,10 @@ export interface AuthUser {
   role: UserRole;
   bio?: string | null;
   certifications?: string[] | null;
+  certificateAssociation?: string | null;
+  certificateType?: string | null;
+  certificateNumber?: string | null;
+  certificateVerifiedAt?: string | null;
   zelleId?: string | null;
   ratingAvg: number;
   ratingCount: number;
@@ -42,9 +46,17 @@ interface AuthActions {
     name: string;
     role: UserRole;
     certifications?: string[];
+    certificateAssociation?: string;
+    certificateType?: string;
+    certificateNumber?: string;
     zelleId?: string;
     bio?: string;
   }): Promise<{ email: string; verificationCode?: string }>;
+  verifyCertificate(data: {
+    association: string;
+    certificateType: string;
+    certificateNumber: string;
+  }): Promise<{ verified: boolean; verificationUrl?: string }>;
   login(email: string, password: string): Promise<AuthUser>;
   verifyEmail(email: string, code: string): Promise<AuthUser>;
   resendVerification(email: string): Promise<{ verificationCode?: string }>;
@@ -102,6 +114,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { email: json.email, verificationCode: json.verificationCode };
   }, []);
 
+  const verifyCertificate: AuthActions['verifyCertificate'] = useCallback(async (data) => {
+    const json = await apiFetch('/auth/verify-certificate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return { verified: json.verified, verificationUrl: json.verificationUrl };
+  }, []);
+
   const login: AuthActions['login'] = useCallback(async (email, password) => {
     const json = await apiFetch('/auth/login', {
       method: 'POST',
@@ -144,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [state.token]);
 
   return (
-    <AuthContext.Provider value={{ ...state, register, login, verifyEmail, resendVerification, logout, refreshUser }}>
+    <AuthContext.Provider value={{ ...state, register, verifyCertificate, login, verifyEmail, resendVerification, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

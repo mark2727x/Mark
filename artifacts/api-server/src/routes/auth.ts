@@ -25,6 +25,55 @@ if (!SESSION_SECRET) {
 }
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
+const RED_CROSS_ASSOCIATION = "American Red Cross";
+const RED_CROSS_LOOKUP_URL = "https://www.redcross.org/take-a-class/digital-certificate";
+
+type CertificateDetails = {
+  association: string;
+  certificateType: string;
+  certificateNumber: string;
+};
+
+function cleanCertificateDetails(value: any): CertificateDetails | null {
+  const association = typeof value?.association === "string" ? value.association.trim() : "";
+  const certificateType = typeof value?.certificateType === "string" ? value.certificateType.trim() : "";
+  const certificateNumber = typeof value?.certificateNumber === "string"
+    ? value.certificateNumber.trim().toUpperCase()
+    : "";
+
+  if (!association || !certificateType || !/^[A-Z0-9][A-Z0-9-]{3,63}$/.test(certificateNumber)) {
+    return null;
+  }
+  return { association, certificateType, certificateNumber };
+}
+
+async function lookupCertificate(details: CertificateDetails): Promise<{
+  verified: boolean;
+  verificationUrl: string;
+}> {
+  if (details.association !== RED_CROSS_ASSOCIATION) {
+    throw new Error("That certificate association is not supported yet");
+  }
+
+  const verificationUrl =
+    `${RED_CROSS_LOOKUP_URL}?certnumber=${encodeURIComponent(details.certificateNumber)}&searchby=certificate`;
+
+  try {
+    const response = await fetch(verificationUrl, {
+      headers: { "User-Agent": "ShiftGuard certificate verification/1.0" },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) {
+      throw new Error(`Certificate provider returned ${response.status}`);
+    }
+    const html = await response.text();
+    const notFound = /Sorry,\s*we did not find a certificate/i.test(html);
+    const hasCertificateResult = /certificate-result/i.test(html);
+    return { verified: hasCertificateResult && !notFound, verificationUrl };
+  } catch {
+    throw new Error("The certificate provider could not be reached. Try again.");
+  }
+}
 
 function signSession(payload: string): string {
   return createHmac("sha256", SESSION_SECRET).update(payload).digest("base64url");
@@ -100,12 +149,42 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     return;
   }
 
-  const { email, password, name, role, certifications, zelleId, bio } = parsed.data;
+  const {
+    email, password, name, role, certifications, zelleId, bio,
+    certificateAssociation, certificateType, certificateNumber,
+  } = parsed.data;
 
   const existing = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
   if (existing.length > 0) {
     res.status(409).json({ error: "Email already registered" });
     return;
+  }
+
+  let certificateDetails: CertificateDetails | null = null;
+  if (role === "lifeguard") {
+    certificateDetails = cleanCertificateDetails({
+      association: certificateAssociation,
+      certificateType,
+      certificateNumber,
+    });
+    if (!certificateDetails) {
+      res.status(400).json({
+        error: "Lifeguards must provide a valid certificate association, type, and number",
+      });
+      return;
+    }
+    try {
+      const result = await lookupCertificate(certificateDetails);
+      if (!result.verified) {
+        res.status(400).json({
+          error: "We could not find that certificate in the American Red Cross lookup",
+        });
+        return;
+      }
+    } catch (error: any) {
+      res.status(503).json({ error: error.message });
+      return;
+    }
   }
 
   const passwordHash = hashPassword(password);
@@ -121,6 +200,10 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     emailVerified: false,
     emailVerificationCode: verificationCode,
     emailVerificationExpiresAt: verificationExpiry(),
+    certificateAssociation: certificateDetails?.association ?? null,
+    certificateType: certificateDetails?.certificateType ?? null,
+    certificateNumber: certificateDetails?.certificateNumber ?? null,
+    certificateVerifiedAt: certificateDetails ? new Date() : null,
   }).returning();
 
   // Resend was not connected for this project. In development, return the
@@ -131,6 +214,36 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     email: user.email,
     verificationCode: process.env.NODE_ENV === "production" ? undefined : verificationCode,
   });
+});
+
+router.post("/auth/verify-certificate", async (req, res): Promise<void> => {
+  const details = cleanCertificateDetails(req.body);
+  if (!details) {
+    res.status(400).json({
+      error: "Enter the association, certificate type, and certificate number",
+    });
+    return;
+  }
+
+  try {
+    const result = await lookupCertificate(details);
+    if (!result.verified) {
+      res.status(400).json({
+        error: "We could not find that certificate in the American Red Cross lookup",
+        verified: false,
+      });
+      return;
+    }
+    res.json({
+      verified: true,
+      association: details.association,
+      certificateType: details.certificateType,
+      certificateNumber: details.certificateNumber,
+      verificationUrl: result.verificationUrl,
+    });
+  } catch (error: any) {
+    res.status(503).json({ error: error.message });
+  }
 });
 
 router.post("/auth/login", async (req, res): Promise<void> => {
@@ -236,7 +349,7 @@ router.get("/auth/me", requireAuth, async (req: any, res): Promise<void> => {
 });
 
 export function sanitizeUser(user: any) {
-  const { passwordHash: _, ...safe } = user;
+  const { passwordHash: _, certificateNumber: __, ...safe } = user;
   return safe;
 }
 

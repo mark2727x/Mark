@@ -26,4 +26,19 @@ export interface RegisterInput {
   zelleId?: string | null;
   /** @nullable */
   bio?: string | null;
+  /**
+     * Issuing association for a lifeguard certificate
+     * @nullable
+     */
+  certificateAssociation?: string | null;
+  /**
+     * Certificate type, for example Lifeguarding
+     * @nullable
+     */
+  certificateType?: string | null;
+  /**
+     * Certificate number or ID from the issuing association
+     * @nullable
+     */
+  certificateNumber?: string | null;
 }

@@ -7,6 +7,7 @@
  */
 
 export * from './authResponse';
+export * from './certificateVerificationResponse';
 export * from './errorResponse';
 export * from './healthStatus';
 export * from './listShiftsParams';
@@ -26,4 +27,5 @@ export * from './shiftUpdate';
 export * from './user';
 export * from './userRole';
 export * from './userUpdate';
+export * from './verifyCertificateInput';
 export * from './verifyEmailInput';
