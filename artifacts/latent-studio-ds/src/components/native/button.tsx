@@ -7,7 +7,6 @@ import React from "react";
 import {
   Pressable,
   Text,
-  ActivityIndicator,
   StyleSheet,
   type PressableProps,
   type StyleProp,
@@ -58,10 +57,9 @@ export function Button({
       {...props}
     >
       {loading ? (
-        <ActivityIndicator
-          size="small"
-          color={variant === "default" ? c.primaryForeground : c.primary}
-        />
+        <Text style={[styles.text, sizeText[size], variantStyles[variant].text, textStyle]}>
+          Loading…
+        </Text>
       ) : (
         <Text style={[styles.text, sizeText[size], variantStyles[variant].text, textStyle]}>
           {children}
