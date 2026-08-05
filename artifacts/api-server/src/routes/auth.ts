@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { createHash, randomBytes } from "crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { db, usersTable } from "@workspace/db";
 import { RegisterBody, LoginBody } from "@workspace/api-zod";
 
@@ -19,16 +19,50 @@ function verifyPassword(password: string, stored: string): boolean {
   return expected === hash;
 }
 
-function makeToken(userId: number): string {
-  // Simple non-expiring token: base64(userId + random)
-  return Buffer.from(`${userId}:${randomBytes(32).toString("hex")}`).toString("base64");
+const SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET) {
+  throw new Error("SESSION_SECRET must be set");
 }
 
-// Token store: in production use Redis/DB. For now, in-memory (resets on restart).
-const tokenStore = new Map<string, number>();
+const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
+
+function signSession(payload: string): string {
+  return createHmac("sha256", SESSION_SECRET).update(payload).digest("base64url");
+}
+
+function makeToken(userId: number): string {
+  // Signed, persistent session token. Unlike the old in-memory token map,
+  // this remains valid when the API workflow is rebuilt or restarted.
+  const payload = `${userId}.${Math.floor(Date.now() / 1000)}.${randomBytes(16).toString("base64url")}`;
+  return `${Buffer.from(payload).toString("base64url")}.${signSession(payload)}`;
+}
 
 export function getUserIdFromToken(token: string): number | null {
-  return tokenStore.get(token) ?? null;
+  const [encodedPayload, signature] = token.split(".");
+  if (!encodedPayload || !signature) return null;
+
+  try {
+    const payload = Buffer.from(encodedPayload, "base64url").toString("utf8");
+    const expected = signSession(payload);
+    const actualBytes = Buffer.from(signature);
+    const expectedBytes = Buffer.from(expected);
+    if (
+      actualBytes.length !== expectedBytes.length ||
+      !timingSafeEqual(actualBytes, expectedBytes)
+    ) {
+      return null;
+    }
+
+    const [userIdRaw, issuedAtRaw] = payload.split(".");
+    const userId = Number(userIdRaw);
+    const issuedAt = Number(issuedAtRaw);
+    const now = Math.floor(Date.now() / 1000);
+    if (!Number.isInteger(userId) || !Number.isFinite(issuedAt)) return null;
+    if (issuedAt > now + 60 || now - issuedAt > SESSION_TTL_SECONDS) return null;
+    return userId;
+  } catch {
+    return null;
+  }
 }
 
 export function requireAuth(req: any, res: any, next: any): void {
@@ -74,7 +108,6 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   }).returning();
 
   const token = makeToken(user.id);
-  tokenStore.set(token, user.id);
 
   res.status(201).json({ token, user: sanitizeUser(user) });
 });
@@ -95,7 +128,6 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   }
 
   const token = makeToken(user.id);
-  tokenStore.set(token, user.id);
 
   res.json({ token, user: sanitizeUser(user) });
 });
