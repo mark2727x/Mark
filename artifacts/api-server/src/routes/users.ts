@@ -1,10 +1,71 @@
 import { Router, type IRouter } from "express";
-import { eq, or } from "drizzle-orm";
+import { eq, or, desc } from "drizzle-orm";
 import { db, usersTable, shiftsTable } from "@workspace/db";
 import { UpdateMeBody as UserUpdate } from "@workspace/api-zod";
 import { requireAuth, sanitizeUser } from "./auth";
 
 const router: IRouter = Router();
+
+// Platform fee kept in sync with payments.ts (10%).
+const PLATFORM_FEE_BPS = 1000;
+
+router.get("/users/me/earnings", requireAuth, async (req: any, res): Promise<void> => {
+  const [me] = await db.select().from(usersTable).where(eq(usersTable.id, req.userId)).limit(1);
+  if (!me) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (me.role !== "lifeguard") {
+    res.status(403).json({ error: "Only lifeguards have earnings" });
+    return;
+  }
+
+  const shifts = await db
+    .select()
+    .from(shiftsTable)
+    .where(eq(shiftsTable.workerId, me.id))
+    .orderBy(desc(shiftsTable.startTime));
+
+  let pendingCents = 0;
+  let paidCents = 0;
+  let paidOutCents = 0;
+
+  const lineItems = shifts.map((shift) => {
+    const gross = Math.round(shift.payRate * shift.totalHours * 100);
+    const fee = Math.round((gross * PLATFORM_FEE_BPS) / 10000);
+    const net = gross - fee;
+
+    if (shift.status === "cancelled") {
+      // no earnings
+    } else if (shift.paymentStatus === "paid_out") {
+      paidOutCents += net;
+    } else if (shift.paymentStatus === "paid") {
+      paidCents += net;
+    } else if (shift.status === "filled" || shift.status === "completed") {
+      pendingCents += net;
+    }
+
+    return {
+      shiftId: shift.id,
+      title: shift.title,
+      startTime: shift.startTime,
+      status: shift.status,
+      paymentStatus: shift.paymentStatus,
+      grossCents: gross,
+      platformFeeCents: fee,
+      netCents: net,
+    };
+  });
+
+  res.json({
+    connectOnboarded: me.stripeConnectOnboarded,
+    platformFeeBps: PLATFORM_FEE_BPS,
+    totals: {
+      pendingCents,
+      paidCents,
+      paidOutCents,
+      lifetimeCents: paidCents + paidOutCents,
+    },
+    shifts: lineItems,
+  });
+});
 
 router.get("/users/me", requireAuth, async (req: any, res): Promise<void> => {
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.userId)).limit(1);

@@ -24,9 +24,11 @@ Add so that payment can be through stripe.
   - `GET /connect/status` — lifeguard's Connect state
   - `POST /shifts/:id/payout` — manager triggers destination transfer to lifeguard after `completed`
   - `POST /stripe/webhook` — signed webhook (raw body mounted before express.json)
+  - `GET /users/me/earnings` — lifeguard earnings dashboard summary + per-shift receipts
 - OpenAPI spec updated with all payment schemas → typed React Query hooks + zod schemas auto-generated
 - Mobile UI:
   - Lifeguard profile: "Set up Stripe payouts" card with Connect onboarding link
+  - Lifeguard **Earnings** tab: lifetime total, pending vs awaiting-payout breakdown, connect-not-set-up warning, per-shift receipts (gross → fee → net)
   - Shift detail: "Pay ${amount} with Stripe" for managers on filled shifts; "Send payout to lifeguard" after completion; "Payout sent" badge when done
 - Stripe sandbox provisioned (claimable). Sandbox keys wired into `artifacts/api-server/.env`.
 

@@ -27,6 +27,7 @@ import type {
   ConnectOnboardingInput,
   ConnectOnboardingResponse,
   ConnectStatus,
+  EarningsSummary,
   ErrorResponse,
   HealthStatus,
   ListShiftsParams,
@@ -1386,6 +1387,83 @@ export function useGetUserShifts<TData = Awaited<ReturnType<typeof getUserShifts
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetUserShiftsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetMyEarningsUrl = () => {
+
+
+
+
+  return `/api/users/me/earnings`
+}
+
+/**
+ * @summary Earnings dashboard for the authenticated lifeguard
+ */
+export const getMyEarnings = async ( options?: Parameters<typeof customFetch>[1]): Promise<EarningsSummary> => {
+
+  return customFetch<EarningsSummary>(getGetMyEarningsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyEarningsQueryKey = () => {
+    return [
+    `/api/users/me/earnings`
+    ] as const;
+    }
+
+
+export const getGetMyEarningsQueryOptions = <TData = Awaited<ReturnType<typeof getMyEarnings>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyEarnings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyEarningsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyEarnings>>> = ({ signal }) => getMyEarnings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyEarnings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyEarningsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyEarnings>>>
+export type GetMyEarningsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Earnings dashboard for the authenticated lifeguard
+ */
+
+export function useGetMyEarnings<TData = Awaited<ReturnType<typeof getMyEarnings>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyEarnings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyEarningsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

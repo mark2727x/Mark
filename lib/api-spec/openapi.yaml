@@ -488,6 +488,25 @@ paths:
                 items:
                   $ref: "#/components/schemas/Shift"
 
+  /users/me/earnings:
+    get:
+      operationId: getMyEarnings
+      tags: [payments]
+      summary: Earnings dashboard for the authenticated lifeguard
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EarningsSummary"
+        "403":
+          description: Only lifeguards have earnings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   # ── Ratings ──────────────────────────────────────────────────────────────────
   /ratings:
     post:
@@ -1117,3 +1136,55 @@ components:
           type: number
         platformFeeCents:
           type: number
+
+    EarningsLineItem:
+      type: object
+      required: [shiftId, title, startTime, status, paymentStatus, grossCents, platformFeeCents, netCents]
+      properties:
+        shiftId:
+          type: number
+        title:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [open, filled, completed, cancelled]
+        paymentStatus:
+          type: string
+          enum: [unpaid, paid, refunded, payout_pending, paid_out]
+        grossCents:
+          type: number
+        platformFeeCents:
+          type: number
+        netCents:
+          type: number
+
+    EarningsTotals:
+      type: object
+      required: [pendingCents, paidCents, paidOutCents, lifetimeCents]
+      properties:
+        pendingCents:
+          type: number
+        paidCents:
+          type: number
+        paidOutCents:
+          type: number
+        lifetimeCents:
+          type: number
+
+    EarningsSummary:
+      type: object
+      required: [connectOnboarded, platformFeeBps, totals, shifts]
+      properties:
+        connectOnboarded:
+          type: boolean
+        platformFeeBps:
+          type: number
+        totals:
+          $ref: "#/components/schemas/EarningsTotals"
+        shifts:
+          type: array
+          items:
+            $ref: "#/components/schemas/EarningsLineItem"

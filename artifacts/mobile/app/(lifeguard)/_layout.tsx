@@ -48,6 +48,13 @@ export default function LifeguardLayout() {
         }}
       />
       <Tabs.Screen
+        name="earnings"
+        options={{
+          title: 'Earnings',
+          tabBarIcon: ({ color }) => <Feather name="dollar-sign" size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',

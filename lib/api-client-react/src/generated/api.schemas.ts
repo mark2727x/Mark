@@ -332,6 +332,52 @@ export interface PayoutResponse {
   platformFeeCents: number;
 }
 
+export type EarningsLineItemStatus = typeof EarningsLineItemStatus[keyof typeof EarningsLineItemStatus];
+
+
+export const EarningsLineItemStatus = {
+  open: 'open',
+  filled: 'filled',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export type EarningsLineItemPaymentStatus = typeof EarningsLineItemPaymentStatus[keyof typeof EarningsLineItemPaymentStatus];
+
+
+export const EarningsLineItemPaymentStatus = {
+  unpaid: 'unpaid',
+  paid: 'paid',
+  refunded: 'refunded',
+  payout_pending: 'payout_pending',
+  paid_out: 'paid_out',
+} as const;
+
+export interface EarningsLineItem {
+  shiftId: number;
+  title: string;
+  startTime: string;
+  status: EarningsLineItemStatus;
+  paymentStatus: EarningsLineItemPaymentStatus;
+  grossCents: number;
+  platformFeeCents: number;
+  netCents: number;
+}
+
+export interface EarningsTotals {
+  pendingCents: number;
+  paidCents: number;
+  paidOutCents: number;
+  lifetimeCents: number;
+}
+
+export interface EarningsSummary {
+  connectOnboarded: boolean;
+  platformFeeBps: number;
+  totals: EarningsTotals;
+  shifts: EarningsLineItem[];
+}
+
 export type ResendVerification200 = {
   verificationRequired?: boolean;
   email?: string;

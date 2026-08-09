@@ -828,6 +828,31 @@ export const GetUserShiftsResponse = zod.array(GetUserShiftsResponseItem)
 
 
 /**
+ * @summary Earnings dashboard for the authenticated lifeguard
+ */
+export const GetMyEarningsResponse = zod.object({
+  "connectOnboarded": zod.boolean(),
+  "platformFeeBps": zod.number(),
+  "totals": zod.object({
+  "pendingCents": zod.number(),
+  "paidCents": zod.number(),
+  "paidOutCents": zod.number(),
+  "lifetimeCents": zod.number()
+}),
+  "shifts": zod.array(zod.object({
+  "shiftId": zod.number(),
+  "title": zod.string(),
+  "startTime": zod.coerce.date(),
+  "status": zod.enum(['open', 'filled', 'completed', 'cancelled']),
+  "paymentStatus": zod.enum(['unpaid', 'paid', 'refunded', 'payout_pending', 'paid_out']),
+  "grossCents": zod.number(),
+  "platformFeeCents": zod.number(),
+  "netCents": zod.number()
+}))
+})
+
+
+/**
  * @summary Submit a rating after a completed shift
  */
 export const createRatingBodyScoreMax = 5;
