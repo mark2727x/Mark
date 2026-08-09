@@ -12,7 +12,7 @@ Add so that payment can be through stripe.
 - Monorepo (pnpm workspaces), Node 20/24, TypeScript 5.9
 - API: Express 5 + Drizzle ORM (Postgres), OpenAPI-first (Orval codegen → React Query + zod)
 - Mobile: Expo Router + React Query + latent-studio-ds
-- Stripe: `stripe` Node SDK, Connect Express accounts, destination transfers with 10% platform fee
+- Stripe: `stripe` Node SDK, Connect Express accounts, destination transfers with a 3% platform fee split 1.5%/1.5% between manager (surcharge on top of shift price) and lifeguard (deducted from payout). Stripe processing fees are separately deducted from the platform balance by Stripe.
 
 ## What's been implemented (Jan 2026)
 - DB schema: `stripe_connect_account_id`, `stripe_connect_onboarded`, `stripe_customer_id` on users; `payment_status`, `stripe_checkout_session_id`, `stripe_payment_intent_id`, `stripe_transfer_id` on shifts; new `payment_transactions` table

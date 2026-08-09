@@ -160,7 +160,8 @@ export default function LifeguardProfileScreen() {
               <>
                 <Body style={styles.cardValue}>
                   Connect a bank account through Stripe to receive payouts on completed shifts.
-                  Managers pay via Stripe Checkout — you get the payout minus a 10% platform fee.
+                  Managers pay via Stripe Checkout — you get the payout minus a 1.5% service fee
+                  (managers pay a matching 1.5%, so the platform's total fee is 3%).
                 </Body>
                 <Button
                   size="sm"

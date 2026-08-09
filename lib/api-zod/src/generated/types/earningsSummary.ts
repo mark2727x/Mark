@@ -11,6 +11,8 @@ import type { EarningsTotals } from './earningsTotals';
 export interface EarningsSummary {
   connectOnboarded: boolean;
   platformFeeBps: number;
+  managerFeeBps?: number;
+  lifeguardFeeBps?: number;
   totals: EarningsTotals;
   shifts: EarningsLineItem[];
 }

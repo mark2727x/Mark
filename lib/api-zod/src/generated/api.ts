@@ -833,6 +833,8 @@ export const GetUserShiftsResponse = zod.array(GetUserShiftsResponseItem)
 export const GetMyEarningsResponse = zod.object({
   "connectOnboarded": zod.boolean(),
   "platformFeeBps": zod.number(),
+  "managerFeeBps": zod.number().optional(),
+  "lifeguardFeeBps": zod.number().optional(),
   "totals": zod.object({
   "pendingCents": zod.number(),
   "paidCents": zod.number(),
@@ -981,7 +983,9 @@ export const GetUserRatingsResponse = zod.array(GetUserRatingsResponseItem)
  */
 export const GetPaymentsConfigResponse = zod.object({
   "publishableKey": zod.string().nullable(),
-  "platformFeeBps": zod.number()
+  "platformFeeBps": zod.number(),
+  "managerFeeBps": zod.number().optional(),
+  "lifeguardFeeBps": zod.number().optional()
 })
 
 

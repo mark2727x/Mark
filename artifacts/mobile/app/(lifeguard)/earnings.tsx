@@ -26,6 +26,8 @@ interface EarningsShift {
 interface EarningsSummary {
   connectOnboarded: boolean;
   platformFeeBps: number;
+  lifeguardFeeBps?: number;
+  managerFeeBps?: number;
   totals: {
     pendingCents: number;
     paidCents: number;
@@ -58,7 +60,11 @@ export default function EarningsScreen() {
   });
 
   const totals = data?.totals;
-  const feePct = data ? (data.platformFeeBps / 100).toFixed(0) : '10';
+  const lifeguardFeePct = data?.lifeguardFeeBps
+    ? (data.lifeguardFeeBps / 100).toFixed(1)
+    : data
+    ? (data.platformFeeBps / 100).toFixed(1)
+    : '1.5';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -80,7 +86,7 @@ export default function EarningsScreen() {
               {usd(totals?.lifetimeCents ?? 0)}
             </Display>
             <Caption style={styles.feeNote}>
-              After a {feePct}% platform fee
+              After a {lifeguardFeePct}% platform fee (managers pay a matching share)
             </Caption>
           </CardContent>
         </Card>
@@ -153,7 +159,7 @@ export default function EarningsScreen() {
                       <Mono style={styles.receiptValue}>{usd(shift.grossCents)}</Mono>
                     </View>
                     <View style={styles.receiptRow}>
-                      <Caption style={styles.receiptLabel}>Platform fee ({feePct}%)</Caption>
+                      <Caption style={styles.receiptLabel}>Platform fee ({lifeguardFeePct}%)</Caption>
                       <Mono style={styles.receiptValue}>−{usd(shift.platformFeeCents)}</Mono>
                     </View>
                     <View style={[styles.receiptRow, styles.receiptTotal]}>

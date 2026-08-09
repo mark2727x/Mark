@@ -10,4 +10,6 @@ export interface PaymentsConfig {
   /** @nullable */
   publishableKey: string | null;
   platformFeeBps: number;
+  managerFeeBps?: number;
+  lifeguardFeeBps?: number;
 }

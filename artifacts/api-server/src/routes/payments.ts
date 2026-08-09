@@ -17,14 +17,37 @@ if (!stripeSecret) {
 }
 const stripe = new Stripe(stripeSecret);
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? "";
-// Platform application fee (10%) — remainder is paid out to the lifeguard.
-const PLATFORM_FEE_BPS = 1000;
+// Platform fee: 3% total, split evenly — the manager pays a 1.5% surcharge
+// on top of the shift price, and 1.5% is deducted from the lifeguard's payout.
+// Business net = MANAGER_FEE_BPS + LIFEGUARD_FEE_BPS = 300 bps (3%).
+// Stripe's own processing fees are separately deducted from the platform's
+// Stripe balance by Stripe itself.
+const MANAGER_FEE_BPS = 150;
+const LIFEGUARD_FEE_BPS = 150;
+const PLATFORM_FEE_BPS = MANAGER_FEE_BPS + LIFEGUARD_FEE_BPS;
 
 function computeShiftAmountCents(shift: {
   payRate: number;
   totalHours: number;
 }): number {
   return Math.round(shift.payRate * shift.totalHours * 100);
+}
+
+function computeFeeBreakdown(shift: { payRate: number; totalHours: number }) {
+  const baseCents = computeShiftAmountCents(shift);
+  const managerFeeCents = Math.round((baseCents * MANAGER_FEE_BPS) / 10000);
+  const lifeguardFeeCents = Math.round((baseCents * LIFEGUARD_FEE_BPS) / 10000);
+  const managerChargeCents = baseCents + managerFeeCents;
+  const lifeguardNetCents = baseCents - lifeguardFeeCents;
+  const platformNetCents = managerFeeCents + lifeguardFeeCents;
+  return {
+    baseCents,
+    managerFeeCents,
+    lifeguardFeeCents,
+    managerChargeCents,
+    lifeguardNetCents,
+    platformNetCents,
+  };
 }
 
 const router: IRouter = Router();
@@ -156,8 +179,12 @@ router.post(
       return;
     }
 
-    const amountCents = computeShiftAmountCents(shift);
-    if (amountCents <= 0) {
+    const {
+      baseCents,
+      managerFeeCents,
+      managerChargeCents,
+    } = computeFeeBreakdown(shift);
+    if (baseCents <= 0) {
       res.status(400).json({ error: "Shift amount must be greater than zero" });
       return;
     }
@@ -169,10 +196,21 @@ router.post(
           quantity: 1,
           price_data: {
             currency: "usd",
-            unit_amount: amountCents,
+            unit_amount: baseCents,
             product_data: {
               name: `Shift: ${shift.title}`,
               description: `${shift.totalHours}h at $${shift.payRate.toFixed(2)}/hr — ${shift.location}`,
+            },
+          },
+        },
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: managerFeeCents,
+            product_data: {
+              name: "Platform fee (1.5%)",
+              description: "ShiftGuard service fee — manager share",
             },
           },
         },
@@ -180,6 +218,8 @@ router.post(
       metadata: {
         shift_id: String(shift.id),
         manager_id: String(req.userId),
+        base_cents: String(baseCents),
+        manager_fee_cents: String(managerFeeCents),
       },
       success_url: `${originUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${originUrl}/payment/cancel`,
@@ -189,7 +229,7 @@ router.post(
       sessionId: session.id,
       shiftId: shift.id,
       payerId: req.userId,
-      amountCents,
+      amountCents: managerChargeCents,
       currency: "usd",
       status: "initiated",
       paymentStatus: "pending",
@@ -314,12 +354,10 @@ router.post(
       return;
     }
 
-    const gross = computeShiftAmountCents(shift);
-    const fee = Math.round((gross * PLATFORM_FEE_BPS) / 10000);
-    const payoutAmount = gross - fee;
+    const { lifeguardNetCents, lifeguardFeeCents } = computeFeeBreakdown(shift);
 
     const transfer = await stripe.transfers.create({
-      amount: payoutAmount,
+      amount: lifeguardNetCents,
       currency: "usd",
       destination: worker.stripeConnectAccountId,
       metadata: {
@@ -336,8 +374,8 @@ router.post(
 
     res.json({
       transferId: transfer.id,
-      amountCents: payoutAmount,
-      platformFeeCents: fee,
+      amountCents: lifeguardNetCents,
+      platformFeeCents: lifeguardFeeCents,
     });
   },
 );
@@ -348,6 +386,8 @@ router.get("/payments/config", (_req: Request, res: Response): void => {
   res.json({
     publishableKey: process.env.STRIPE_PUBLISHABLE_KEY ?? null,
     platformFeeBps: PLATFORM_FEE_BPS,
+    managerFeeBps: MANAGER_FEE_BPS,
+    lifeguardFeeBps: LIFEGUARD_FEE_BPS,
   });
 });
 

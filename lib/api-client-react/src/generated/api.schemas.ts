@@ -265,6 +265,8 @@ export interface PaymentsConfig {
   /** @nullable */
   publishableKey: string | null;
   platformFeeBps: number;
+  managerFeeBps?: number;
+  lifeguardFeeBps?: number;
 }
 
 export interface CheckoutSessionInput {
@@ -374,6 +376,8 @@ export interface EarningsTotals {
 export interface EarningsSummary {
   connectOnboarded: boolean;
   platformFeeBps: number;
+  managerFeeBps?: number;
+  lifeguardFeeBps?: number;
   totals: EarningsTotals;
   shifts: EarningsLineItem[];
 }

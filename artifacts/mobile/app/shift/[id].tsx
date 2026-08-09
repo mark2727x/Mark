@@ -139,7 +139,11 @@ export default function ShiftDetailScreen() {
   const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   const endTime = new Date(date.getTime() + shift.totalHours * 3600_000);
   const endStr = endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  const total = (shift.payRate * shift.totalHours).toFixed(2);
+  const base = shift.payRate * shift.totalHours;
+  const total = base.toFixed(2);
+  // Manager pays 1.5% surcharge on top; lifeguard has 1.5% deducted from payout.
+  const managerCharge = (base * 1.015).toFixed(2);
+  const lifeguardNet = (base * 0.985).toFixed(2);
 
   const isLifeguard = user?.role === 'lifeguard';
   const isManager = user?.role === 'manager' && shift.managerId === user.id;
@@ -174,8 +178,8 @@ export default function ShiftDetailScreen() {
             <Caption style={styles.statLbl}>Duration</Caption>
           </View>
           <View style={styles.statBox}>
-            <Label style={styles.statVal}>${total}</Label>
-            <Caption style={styles.statLbl}>You earn</Caption>
+            <Label style={styles.statVal}>${isManager ? managerCharge : lifeguardNet}</Label>
+            <Caption style={styles.statLbl}>{isManager ? 'You pay' : 'You earn'}</Caption>
           </View>
         </View>
 
@@ -282,7 +286,7 @@ export default function ShiftDetailScreen() {
               onPress={() => pickupMutation.mutate()}
               style={styles.actionBtn}
             >
-              Pick up shift — earn ${total}
+              Pick up shift — earn ${lifeguardNet}
             </Button>
           )}
           {isLifeguard && shift.status === 'filled' && isAssigned && (
@@ -291,15 +295,20 @@ export default function ShiftDetailScreen() {
             </Button>
           )}
           {isManager && shift.status === 'filled' && shift.paymentStatus !== 'paid' && shift.paymentStatus !== 'paid_out' && (
-            <Button
-              size="lg"
-              loading={payMutation.isPending}
-              onPress={() => payMutation.mutate()}
-              style={styles.actionBtn}
-              testID="pay-shift-btn"
-            >
-              Pay ${total} with Stripe
-            </Button>
+            <>
+              <Button
+                size="lg"
+                loading={payMutation.isPending}
+                onPress={() => payMutation.mutate()}
+                style={styles.actionBtn}
+                testID="pay-shift-btn"
+              >
+                Pay ${managerCharge} with Stripe
+              </Button>
+              <Caption style={{ color: c.mutedForeground, textAlign: 'center' }}>
+                ${total} shift + 1.5% service fee. Lifeguard receives ${lifeguardNet} after their 1.5%.
+              </Caption>
+            </>
           )}
           {isManager && shift.status === 'filled' && (shift.paymentStatus === 'paid' || shift.paymentStatus === 'paid_out') && (
             <Button size="lg" loading={completeMutation.isPending} onPress={handleComplete} style={styles.actionBtn}>

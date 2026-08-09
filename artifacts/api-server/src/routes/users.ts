@@ -6,8 +6,13 @@ import { requireAuth, sanitizeUser } from "./auth";
 
 const router: IRouter = Router();
 
-// Platform fee kept in sync with payments.ts (10%).
-const PLATFORM_FEE_BPS = 1000;
+// Platform fee split kept in sync with payments.ts:
+// 1.5% surcharge to the manager on top of the base + 1.5% deducted from the
+// lifeguard's payout = 3% total to the business. Stripe processing fees are
+// deducted from the platform balance by Stripe itself.
+const MANAGER_FEE_BPS = 150;
+const LIFEGUARD_FEE_BPS = 150;
+const PLATFORM_FEE_BPS = MANAGER_FEE_BPS + LIFEGUARD_FEE_BPS;
 
 router.get("/users/me/earnings", requireAuth, async (req: any, res): Promise<void> => {
   const [me] = await db.select().from(usersTable).where(eq(usersTable.id, req.userId)).limit(1);
@@ -29,7 +34,7 @@ router.get("/users/me/earnings", requireAuth, async (req: any, res): Promise<voi
 
   const lineItems = shifts.map((shift) => {
     const gross = Math.round(shift.payRate * shift.totalHours * 100);
-    const fee = Math.round((gross * PLATFORM_FEE_BPS) / 10000);
+    const fee = Math.round((gross * LIFEGUARD_FEE_BPS) / 10000);
     const net = gross - fee;
 
     if (shift.status === "cancelled") {
@@ -57,6 +62,8 @@ router.get("/users/me/earnings", requireAuth, async (req: any, res): Promise<voi
   res.json({
     connectOnboarded: me.stripeConnectOnboarded,
     platformFeeBps: PLATFORM_FEE_BPS,
+    lifeguardFeeBps: LIFEGUARD_FEE_BPS,
+    managerFeeBps: MANAGER_FEE_BPS,
     totals: {
       pendingCents,
       paidCents,
