@@ -20,6 +20,8 @@ tags:
     description: User profiles
   - name: ratings
     description: Ratings and reviews
+  - name: payments
+    description: Stripe payments and payouts
 
 paths:
   /healthz:
@@ -539,6 +541,127 @@ paths:
                 items:
                   $ref: "#/components/schemas/Rating"
 
+  # ── Payments ────────────────────────────────────────────────────────────────
+  /payments/config:
+    get:
+      operationId: getPaymentsConfig
+      tags: [payments]
+      summary: Publishable Stripe config for the frontend
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentsConfig"
+
+  /payments/checkout:
+    post:
+      operationId: createCheckoutSession
+      tags: [payments]
+      summary: Create a Stripe Checkout session for a shift (manager only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutSessionInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSessionResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payments/status/{sessionId}:
+    get:
+      operationId: getPaymentStatus
+      tags: [payments]
+      summary: Poll status of a Stripe Checkout session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentStatus"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /connect/onboarding-link:
+    post:
+      operationId: createConnectOnboardingLink
+      tags: [payments]
+      summary: Create a Stripe Connect onboarding link (lifeguard only)
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectOnboardingInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectOnboardingResponse"
+
+  /connect/status:
+    get:
+      operationId: getConnectStatus
+      tags: [payments]
+      summary: Get Stripe Connect onboarding status for the current lifeguard
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectStatus"
+
+  /shifts/{id}/payout:
+    post:
+      operationId: payoutShift
+      tags: [payments]
+      summary: Transfer funds to the lifeguard for a completed shift (manager only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayoutResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     # ── Core ──────────────────────────────────────────────────────────────────
@@ -710,6 +833,10 @@ components:
         certificateVerifiedAt:
           type: ["string", "null"]
           format: date-time
+        stripeConnectOnboarded:
+          type: boolean
+        stripeConnectAccountId:
+          type: ["string", "null"]
 
     UserUpdate:
       type: object
@@ -772,6 +899,9 @@ components:
         status:
           type: string
           enum: [open, filled, completed, cancelled]
+        paymentStatus:
+          type: string
+          enum: [unpaid, paid, refunded, payout_pending, paid_out]
         managerId:
           type: number
         manager:
@@ -898,3 +1028,92 @@ components:
           maximum: 5
         comment:
           type: string
+
+
+    # ── Payments ──────────────────────────────────────────────────────────────
+    PaymentsConfig:
+      type: object
+      required: [publishableKey, platformFeeBps]
+      properties:
+        publishableKey:
+          type: ["string", "null"]
+        platformFeeBps:
+          type: number
+
+    CheckoutSessionInput:
+      type: object
+      required: [shift_id, origin_url]
+      properties:
+        shift_id:
+          type: number
+        origin_url:
+          type: string
+
+    CheckoutSessionResponse:
+      type: object
+      required: [session_id]
+      properties:
+        checkout_url:
+          type: ["string", "null"]
+        session_id:
+          type: string
+
+    PaymentStatus:
+      type: object
+      required: [session_id, status, payment_status, amount_cents, currency, shift_id]
+      properties:
+        session_id:
+          type: string
+        status:
+          type: string
+          enum: [initiated, completed, failed, expired, refunded]
+        payment_status:
+          type: string
+          enum: [pending, paid, failed, expired, refunded]
+        amount_cents:
+          type: number
+        currency:
+          type: string
+        shift_id:
+          type: number
+
+    ConnectOnboardingInput:
+      type: object
+      properties:
+        origin_url:
+          type: string
+
+    ConnectOnboardingResponse:
+      type: object
+      required: [url, accountId]
+      properties:
+        url:
+          type: string
+        accountId:
+          type: string
+
+    ConnectStatus:
+      type: object
+      required: [hasAccount, onboarded]
+      properties:
+        hasAccount:
+          type: boolean
+        onboarded:
+          type: boolean
+        chargesEnabled:
+          type: boolean
+        payoutsEnabled:
+          type: boolean
+        detailsSubmitted:
+          type: boolean
+
+    PayoutResponse:
+      type: object
+      required: [transferId, amountCents, platformFeeCents]
+      properties:
+        transferId:
+          type: string
+        amountCents:
+          type: number
+        platformFeeCents:
+          type: number

@@ -22,10 +22,18 @@ import type {
 import type {
   AuthResponse,
   CertificateVerificationResponse,
+  CheckoutSessionInput,
+  CheckoutSessionResponse,
+  ConnectOnboardingInput,
+  ConnectOnboardingResponse,
+  ConnectStatus,
   ErrorResponse,
   HealthStatus,
   ListShiftsParams,
   LoginInput,
+  PaymentStatus,
+  PaymentsConfig,
+  PayoutResponse,
   Rating,
   RatingInput,
   RegisterInput,
@@ -1537,4 +1545,448 @@ export function useGetUserRatings<TData = Awaited<ReturnType<typeof getUserRatin
 
 
 
+
+export const getGetPaymentsConfigUrl = () => {
+
+
+
+
+  return `/api/payments/config`
+}
+
+/**
+ * @summary Publishable Stripe config for the frontend
+ */
+export const getPaymentsConfig = async ( options?: Parameters<typeof customFetch>[1]): Promise<PaymentsConfig> => {
+
+  return customFetch<PaymentsConfig>(getGetPaymentsConfigUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPaymentsConfigQueryKey = () => {
+    return [
+    `/api/payments/config`
+    ] as const;
+    }
+
+
+export const getGetPaymentsConfigQueryOptions = <TData = Awaited<ReturnType<typeof getPaymentsConfig>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPaymentsConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPaymentsConfigQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPaymentsConfig>>> = ({ signal }) => getPaymentsConfig({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPaymentsConfig>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPaymentsConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getPaymentsConfig>>>
+export type GetPaymentsConfigQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Publishable Stripe config for the frontend
+ */
+
+export function useGetPaymentsConfig<TData = Awaited<ReturnType<typeof getPaymentsConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPaymentsConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPaymentsConfigQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateCheckoutSessionUrl = () => {
+
+
+
+
+  return `/api/payments/checkout`
+}
+
+/**
+ * @summary Create a Stripe Checkout session for a shift (manager only)
+ */
+export const createCheckoutSession = async (checkoutSessionInput: CheckoutSessionInput, options?: Parameters<typeof customFetch>[1]): Promise<CheckoutSessionResponse> => {
+
+  return customFetch<CheckoutSessionResponse>(getCreateCheckoutSessionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(checkoutSessionInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCheckoutSessionMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCheckoutSession>>, TError,{data: BodyType<CheckoutSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCheckoutSession>>, TError,{data: BodyType<CheckoutSessionInput>}, TContext> => {
+
+const mutationKey = ['createCheckoutSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCheckoutSession>>, {data: BodyType<CheckoutSessionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCheckoutSession(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCheckoutSessionMutationResult = NonNullable<Awaited<ReturnType<typeof createCheckoutSession>>>
+    export type CreateCheckoutSessionMutationBody = BodyType<CheckoutSessionInput>
+    export type CreateCheckoutSessionMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Create a Stripe Checkout session for a shift (manager only)
+ */
+export const useCreateCheckoutSession = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCheckoutSession>>, TError,{data: BodyType<CheckoutSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCheckoutSession>>,
+        TError,
+        {data: BodyType<CheckoutSessionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateCheckoutSessionMutationOptions(options));
+    }
+
+export const getGetPaymentStatusUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/payments/status/${sessionId}`
+}
+
+/**
+ * @summary Poll status of a Stripe Checkout session
+ */
+export const getPaymentStatus = async (sessionId: string, options?: Parameters<typeof customFetch>[1]): Promise<PaymentStatus> => {
+
+  return customFetch<PaymentStatus>(getGetPaymentStatusUrl(sessionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPaymentStatusQueryKey = (sessionId: string,) => {
+    return [
+    `/api/payments/status/${sessionId}`
+    ] as const;
+    }
+
+
+export const getGetPaymentStatusQueryOptions = <TData = Awaited<ReturnType<typeof getPaymentStatus>>, TError = ErrorType<ErrorResponse>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPaymentStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPaymentStatusQueryKey(sessionId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPaymentStatus>>> = ({ signal }) => getPaymentStatus(sessionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: sessionId !== null && sessionId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPaymentStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPaymentStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getPaymentStatus>>>
+export type GetPaymentStatusQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Poll status of a Stripe Checkout session
+ */
+
+export function useGetPaymentStatus<TData = Awaited<ReturnType<typeof getPaymentStatus>>, TError = ErrorType<ErrorResponse>>(
+ sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPaymentStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPaymentStatusQueryOptions(sessionId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateConnectOnboardingLinkUrl = () => {
+
+
+
+
+  return `/api/connect/onboarding-link`
+}
+
+/**
+ * @summary Create a Stripe Connect onboarding link (lifeguard only)
+ */
+export const createConnectOnboardingLink = async (connectOnboardingInput?: ConnectOnboardingInput, options?: Parameters<typeof customFetch>[1]): Promise<ConnectOnboardingResponse> => {
+
+  return customFetch<ConnectOnboardingResponse>(getCreateConnectOnboardingLinkUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(connectOnboardingInput)
+  }
+);}
+
+
+
+
+
+export const getCreateConnectOnboardingLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createConnectOnboardingLink>>, TError,{data?: BodyType<ConnectOnboardingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createConnectOnboardingLink>>, TError,{data?: BodyType<ConnectOnboardingInput>}, TContext> => {
+
+const mutationKey = ['createConnectOnboardingLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createConnectOnboardingLink>>, {data?: BodyType<ConnectOnboardingInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createConnectOnboardingLink(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateConnectOnboardingLinkMutationResult = NonNullable<Awaited<ReturnType<typeof createConnectOnboardingLink>>>
+    export type CreateConnectOnboardingLinkMutationBody = BodyType<ConnectOnboardingInput> | undefined
+    export type CreateConnectOnboardingLinkMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a Stripe Connect onboarding link (lifeguard only)
+ */
+export const useCreateConnectOnboardingLink = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createConnectOnboardingLink>>, TError,{data?: BodyType<ConnectOnboardingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createConnectOnboardingLink>>,
+        TError,
+        {data?: BodyType<ConnectOnboardingInput>},
+        TContext
+      > => {
+      return useMutation(getCreateConnectOnboardingLinkMutationOptions(options));
+    }
+
+export const getGetConnectStatusUrl = () => {
+
+
+
+
+  return `/api/connect/status`
+}
+
+/**
+ * @summary Get Stripe Connect onboarding status for the current lifeguard
+ */
+export const getConnectStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<ConnectStatus> => {
+
+  return customFetch<ConnectStatus>(getGetConnectStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetConnectStatusQueryKey = () => {
+    return [
+    `/api/connect/status`
+    ] as const;
+    }
+
+
+export const getGetConnectStatusQueryOptions = <TData = Awaited<ReturnType<typeof getConnectStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getConnectStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetConnectStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getConnectStatus>>> = ({ signal }) => getConnectStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getConnectStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetConnectStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getConnectStatus>>>
+export type GetConnectStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get Stripe Connect onboarding status for the current lifeguard
+ */
+
+export function useGetConnectStatus<TData = Awaited<ReturnType<typeof getConnectStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getConnectStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetConnectStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPayoutShiftUrl = (id: number,) => {
+
+
+
+
+  return `/api/shifts/${id}/payout`
+}
+
+/**
+ * @summary Transfer funds to the lifeguard for a completed shift (manager only)
+ */
+export const payoutShift = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<PayoutResponse> => {
+
+  return customFetch<PayoutResponse>(getPayoutShiftUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getPayoutShiftMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payoutShift>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof payoutShift>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['payoutShift'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof payoutShift>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  payoutShift(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PayoutShiftMutationResult = NonNullable<Awaited<ReturnType<typeof payoutShift>>>
+
+    export type PayoutShiftMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Transfer funds to the lifeguard for a completed shift (manager only)
+ */
+export const usePayoutShift = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof payoutShift>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof payoutShift>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getPayoutShiftMutationOptions(options));
+    }
 

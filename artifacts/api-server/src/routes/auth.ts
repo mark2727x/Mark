@@ -19,7 +19,7 @@ function verifyPassword(password: string, stored: string): boolean {
   return expected === hash;
 }
 
-const SESSION_SECRET = process.env.SESSION_SECRET;
+const SESSION_SECRET: string = process.env.SESSION_SECRET ?? "";
 if (!SESSION_SECRET) {
   throw new Error("SESSION_SECRET must be set");
 }

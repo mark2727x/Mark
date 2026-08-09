@@ -29,4 +29,7 @@ export interface User {
   certificateType?: string | null;
   /** @nullable */
   certificateVerifiedAt?: Date | null;
+  stripeConnectOnboarded?: boolean;
+  /** @nullable */
+  stripeConnectAccountId?: string | null;
 }

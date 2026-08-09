@@ -90,7 +90,9 @@ export const LoginResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 })
 })
 
@@ -124,7 +126,9 @@ export const VerifyEmailResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 })
 })
 
@@ -160,7 +164,9 @@ export const GetMeResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 })
 
 
@@ -185,6 +191,7 @@ export const ListShiftsResponseItem = zod.object({
   "description": zod.string(),
   "rules": zod.string().describe('Rules and requirements set by the employer'),
   "status": zod.enum(['open', 'filled', 'completed', 'cancelled']),
+  "paymentStatus": zod.enum(['unpaid', 'paid', 'refunded', 'payout_pending', 'paid_out']).optional(),
   "managerId": zod.number(),
   "manager": zod.object({
   "id": zod.number(),
@@ -200,7 +207,9 @@ export const ListShiftsResponseItem = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }).optional(),
   "workerId": zod.number().nullish(),
   "worker": zod.union([zod.object({
@@ -217,7 +226,9 @@ export const ListShiftsResponseItem = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }),zod.null()]).optional(),
   "managerContact": zod.union([zod.object({
   "name": zod.string(),
@@ -261,6 +272,7 @@ export const CreateShiftResponse = zod.object({
   "description": zod.string(),
   "rules": zod.string().describe('Rules and requirements set by the employer'),
   "status": zod.enum(['open', 'filled', 'completed', 'cancelled']),
+  "paymentStatus": zod.enum(['unpaid', 'paid', 'refunded', 'payout_pending', 'paid_out']).optional(),
   "managerId": zod.number(),
   "manager": zod.object({
   "id": zod.number(),
@@ -276,7 +288,9 @@ export const CreateShiftResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }).optional(),
   "workerId": zod.number().nullish(),
   "worker": zod.union([zod.object({
@@ -293,7 +307,9 @@ export const CreateShiftResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }),zod.null()]).optional(),
   "managerContact": zod.union([zod.object({
   "name": zod.string(),
@@ -325,6 +341,7 @@ export const GetShiftResponse = zod.object({
   "description": zod.string(),
   "rules": zod.string().describe('Rules and requirements set by the employer'),
   "status": zod.enum(['open', 'filled', 'completed', 'cancelled']),
+  "paymentStatus": zod.enum(['unpaid', 'paid', 'refunded', 'payout_pending', 'paid_out']).optional(),
   "managerId": zod.number(),
   "manager": zod.object({
   "id": zod.number(),
@@ -340,7 +357,9 @@ export const GetShiftResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }).optional(),
   "workerId": zod.number().nullish(),
   "worker": zod.union([zod.object({
@@ -357,7 +376,9 @@ export const GetShiftResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }),zod.null()]).optional(),
   "managerContact": zod.union([zod.object({
   "name": zod.string(),
@@ -404,6 +425,7 @@ export const UpdateShiftResponse = zod.object({
   "description": zod.string(),
   "rules": zod.string().describe('Rules and requirements set by the employer'),
   "status": zod.enum(['open', 'filled', 'completed', 'cancelled']),
+  "paymentStatus": zod.enum(['unpaid', 'paid', 'refunded', 'payout_pending', 'paid_out']).optional(),
   "managerId": zod.number(),
   "manager": zod.object({
   "id": zod.number(),
@@ -419,7 +441,9 @@ export const UpdateShiftResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }).optional(),
   "workerId": zod.number().nullish(),
   "worker": zod.union([zod.object({
@@ -436,7 +460,9 @@ export const UpdateShiftResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }),zod.null()]).optional(),
   "managerContact": zod.union([zod.object({
   "name": zod.string(),
@@ -478,6 +504,7 @@ export const PickupShiftResponse = zod.object({
   "description": zod.string(),
   "rules": zod.string().describe('Rules and requirements set by the employer'),
   "status": zod.enum(['open', 'filled', 'completed', 'cancelled']),
+  "paymentStatus": zod.enum(['unpaid', 'paid', 'refunded', 'payout_pending', 'paid_out']).optional(),
   "managerId": zod.number(),
   "manager": zod.object({
   "id": zod.number(),
@@ -493,7 +520,9 @@ export const PickupShiftResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }).optional(),
   "workerId": zod.number().nullish(),
   "worker": zod.union([zod.object({
@@ -510,7 +539,9 @@ export const PickupShiftResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }),zod.null()]).optional(),
   "managerContact": zod.union([zod.object({
   "name": zod.string(),
@@ -542,6 +573,7 @@ export const CompleteShiftResponse = zod.object({
   "description": zod.string(),
   "rules": zod.string().describe('Rules and requirements set by the employer'),
   "status": zod.enum(['open', 'filled', 'completed', 'cancelled']),
+  "paymentStatus": zod.enum(['unpaid', 'paid', 'refunded', 'payout_pending', 'paid_out']).optional(),
   "managerId": zod.number(),
   "manager": zod.object({
   "id": zod.number(),
@@ -557,7 +589,9 @@ export const CompleteShiftResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }).optional(),
   "workerId": zod.number().nullish(),
   "worker": zod.union([zod.object({
@@ -574,7 +608,9 @@ export const CompleteShiftResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }),zod.null()]).optional(),
   "managerContact": zod.union([zod.object({
   "name": zod.string(),
@@ -606,6 +642,7 @@ export const DropShiftResponse = zod.object({
   "description": zod.string(),
   "rules": zod.string().describe('Rules and requirements set by the employer'),
   "status": zod.enum(['open', 'filled', 'completed', 'cancelled']),
+  "paymentStatus": zod.enum(['unpaid', 'paid', 'refunded', 'payout_pending', 'paid_out']).optional(),
   "managerId": zod.number(),
   "manager": zod.object({
   "id": zod.number(),
@@ -621,7 +658,9 @@ export const DropShiftResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }).optional(),
   "workerId": zod.number().nullish(),
   "worker": zod.union([zod.object({
@@ -638,7 +677,9 @@ export const DropShiftResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }),zod.null()]).optional(),
   "managerContact": zod.union([zod.object({
   "name": zod.string(),
@@ -673,7 +714,9 @@ export const GetUserResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 })
 
 
@@ -708,7 +751,9 @@ export const UpdateMeResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 })
 
 
@@ -730,6 +775,7 @@ export const GetUserShiftsResponseItem = zod.object({
   "description": zod.string(),
   "rules": zod.string().describe('Rules and requirements set by the employer'),
   "status": zod.enum(['open', 'filled', 'completed', 'cancelled']),
+  "paymentStatus": zod.enum(['unpaid', 'paid', 'refunded', 'payout_pending', 'paid_out']).optional(),
   "managerId": zod.number(),
   "manager": zod.object({
   "id": zod.number(),
@@ -745,7 +791,9 @@ export const GetUserShiftsResponseItem = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }).optional(),
   "workerId": zod.number().nullish(),
   "worker": zod.union([zod.object({
@@ -762,7 +810,9 @@ export const GetUserShiftsResponseItem = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }),zod.null()]).optional(),
   "managerContact": zod.union([zod.object({
   "name": zod.string(),
@@ -812,7 +862,9 @@ export const CreateRatingResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }).optional(),
   "rateeId": zod.number(),
   "ratee": zod.object({
@@ -829,7 +881,9 @@ export const CreateRatingResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }).optional(),
   "shiftId": zod.number(),
   "score": zod.number().min(1).max(createRatingResponseScoreMax),
@@ -866,7 +920,9 @@ export const GetUserRatingsResponseItem = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }).optional(),
   "rateeId": zod.number(),
   "ratee": zod.object({
@@ -883,7 +939,9 @@ export const GetUserRatingsResponseItem = zod.object({
   "createdAt": zod.coerce.date(),
   "certificateAssociation": zod.string().nullish(),
   "certificateType": zod.string().nullish(),
-  "certificateVerifiedAt": zod.coerce.date().nullish()
+  "certificateVerifiedAt": zod.coerce.date().nullish(),
+  "stripeConnectOnboarded": zod.boolean().optional(),
+  "stripeConnectAccountId": zod.string().nullish()
 }).optional(),
   "shiftId": zod.number(),
   "score": zod.number().min(1).max(getUserRatingsResponseScoreMax),
@@ -891,5 +949,84 @@ export const GetUserRatingsResponseItem = zod.object({
   "createdAt": zod.coerce.date()
 })
 export const GetUserRatingsResponse = zod.array(GetUserRatingsResponseItem)
+
+
+/**
+ * @summary Publishable Stripe config for the frontend
+ */
+export const GetPaymentsConfigResponse = zod.object({
+  "publishableKey": zod.string().nullable(),
+  "platformFeeBps": zod.number()
+})
+
+
+/**
+ * @summary Create a Stripe Checkout session for a shift (manager only)
+ */
+export const CreateCheckoutSessionBody = zod.object({
+  "shift_id": zod.number(),
+  "origin_url": zod.string()
+})
+
+export const CreateCheckoutSessionResponse = zod.object({
+  "checkout_url": zod.string().nullish(),
+  "session_id": zod.string()
+})
+
+
+/**
+ * @summary Poll status of a Stripe Checkout session
+ */
+export const GetPaymentStatusParams = zod.object({
+  "sessionId": zod.coerce.string()
+})
+
+export const GetPaymentStatusResponse = zod.object({
+  "session_id": zod.string(),
+  "status": zod.enum(['initiated', 'completed', 'failed', 'expired', 'refunded']),
+  "payment_status": zod.enum(['pending', 'paid', 'failed', 'expired', 'refunded']),
+  "amount_cents": zod.number(),
+  "currency": zod.string(),
+  "shift_id": zod.number()
+})
+
+
+/**
+ * @summary Create a Stripe Connect onboarding link (lifeguard only)
+ */
+export const CreateConnectOnboardingLinkBody = zod.object({
+  "origin_url": zod.string().optional()
+})
+
+export const CreateConnectOnboardingLinkResponse = zod.object({
+  "url": zod.string(),
+  "accountId": zod.string()
+})
+
+
+/**
+ * @summary Get Stripe Connect onboarding status for the current lifeguard
+ */
+export const GetConnectStatusResponse = zod.object({
+  "hasAccount": zod.boolean(),
+  "onboarded": zod.boolean(),
+  "chargesEnabled": zod.boolean().optional(),
+  "payoutsEnabled": zod.boolean().optional(),
+  "detailsSubmitted": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Transfer funds to the lifeguard for a completed shift (manager only)
+ */
+export const PayoutShiftParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const PayoutShiftResponse = zod.object({
+  "transferId": zod.string(),
+  "amountCents": zod.number(),
+  "platformFeeCents": zod.number()
+})
 
 

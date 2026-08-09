@@ -124,6 +124,9 @@ export interface User {
   certificateType?: string | null;
   /** @nullable */
   certificateVerifiedAt?: string | null;
+  stripeConnectOnboarded?: boolean;
+  /** @nullable */
+  stripeConnectAccountId?: string | null;
 }
 
 export interface AuthResponse {
@@ -161,6 +164,17 @@ export const ShiftStatus = {
   cancelled: 'cancelled',
 } as const;
 
+export type ShiftPaymentStatus = typeof ShiftPaymentStatus[keyof typeof ShiftPaymentStatus];
+
+
+export const ShiftPaymentStatus = {
+  unpaid: 'unpaid',
+  paid: 'paid',
+  refunded: 'refunded',
+  payout_pending: 'payout_pending',
+  paid_out: 'paid_out',
+} as const;
+
 export interface Contact {
   name: string;
   phone: string;
@@ -181,6 +195,7 @@ export interface Shift {
   /** Rules and requirements set by the employer */
   rules: string;
   status: ShiftStatus;
+  paymentStatus?: ShiftPaymentStatus;
   managerId: number;
   manager?: User;
   /** @nullable */
@@ -244,6 +259,77 @@ export interface RatingInput {
      */
   score: number;
   comment?: string;
+}
+
+export interface PaymentsConfig {
+  /** @nullable */
+  publishableKey: string | null;
+  platformFeeBps: number;
+}
+
+export interface CheckoutSessionInput {
+  shift_id: number;
+  origin_url: string;
+}
+
+export interface CheckoutSessionResponse {
+  /** @nullable */
+  checkout_url?: string | null;
+  session_id: string;
+}
+
+export type PaymentStatusStatus = typeof PaymentStatusStatus[keyof typeof PaymentStatusStatus];
+
+
+export const PaymentStatusStatus = {
+  initiated: 'initiated',
+  completed: 'completed',
+  failed: 'failed',
+  expired: 'expired',
+  refunded: 'refunded',
+} as const;
+
+export type PaymentStatusPaymentStatus = typeof PaymentStatusPaymentStatus[keyof typeof PaymentStatusPaymentStatus];
+
+
+export const PaymentStatusPaymentStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  failed: 'failed',
+  expired: 'expired',
+  refunded: 'refunded',
+} as const;
+
+export interface PaymentStatus {
+  session_id: string;
+  status: PaymentStatusStatus;
+  payment_status: PaymentStatusPaymentStatus;
+  amount_cents: number;
+  currency: string;
+  shift_id: number;
+}
+
+export interface ConnectOnboardingInput {
+  origin_url?: string;
+}
+
+export interface ConnectOnboardingResponse {
+  url: string;
+  accountId: string;
+}
+
+export interface ConnectStatus {
+  hasAccount: boolean;
+  onboarded: boolean;
+  chargesEnabled?: boolean;
+  payoutsEnabled?: boolean;
+  detailsSubmitted?: boolean;
+}
+
+export interface PayoutResponse {
+  transferId: string;
+  amountCents: number;
+  platformFeeCents: number;
 }
 
 export type ResendVerification200 = {

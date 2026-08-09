@@ -5,6 +5,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import * as WebBrowser from 'expo-web-browser';
 import { nativeTheme } from '@workspace/latent-studio-ds/lib/native-theme';
 import { Badge } from '@workspace/latent-studio-ds/components/native/badge';
 import { Button } from '@workspace/latent-studio-ds/components/native/button';
@@ -39,10 +40,11 @@ interface ShiftDetail {
   description: string;
   rules: string;
   status: string;
+  paymentStatus?: string;
   managerId: number;
   workerId?: number | null;
   manager?: { id: number; name: string; ratingAvg: number; ratingCount: number } | null;
-  worker?: { id: number; name: string; ratingAvg: number; ratingCount: number; zelleId?: string | null } | null;
+  worker?: { id: number; name: string; ratingAvg: number; ratingCount: number; zelleId?: string | null; stripeConnectOnboarded?: boolean } | null;
   managerContact?: { name: string; phone: string } | null;
   workerContact?: { name: string; phone: string } | null;
 }
@@ -83,6 +85,30 @@ export default function ShiftDetailScreen() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['shift', id] });
       qc.invalidateQueries({ queryKey: ['manager-shifts', user?.id] });
+    },
+  });
+
+  const payMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<{ checkout_url: string; session_id: string }>('/payments/checkout', {
+        method: 'POST',
+        body: JSON.stringify({
+          shift_id: Number(id),
+          origin_url: `https://${process.env.EXPO_PUBLIC_DOMAIN}`,
+        }),
+      }),
+    onSuccess: async (data) => {
+      if (data.checkout_url) {
+        await WebBrowser.openBrowserAsync(data.checkout_url);
+      }
+      qc.invalidateQueries({ queryKey: ['shift', id] });
+    },
+  });
+
+  const payoutMutation = useMutation({
+    mutationFn: () => apiFetch(`/shifts/${id}/payout`, { method: 'POST' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['shift', id] });
     },
   });
 
@@ -241,9 +267,9 @@ export default function ShiftDetailScreen() {
         )}
 
         {/* Mutaton errors */}
-        {(pickupMutation.error || dropMutation.error || completeMutation.error) && (
+        {(pickupMutation.error || dropMutation.error || completeMutation.error || payMutation.error || payoutMutation.error) && (
           <Body style={styles.mutError}>
-            {((pickupMutation.error || dropMutation.error || completeMutation.error) as Error).message}
+            {((pickupMutation.error || dropMutation.error || completeMutation.error || payMutation.error || payoutMutation.error) as Error).message}
           </Body>
         )}
 
@@ -264,10 +290,35 @@ export default function ShiftDetailScreen() {
               Drop shift
             </Button>
           )}
-          {isManager && shift.status === 'filled' && (
+          {isManager && shift.status === 'filled' && shift.paymentStatus !== 'paid' && shift.paymentStatus !== 'paid_out' && (
+            <Button
+              size="lg"
+              loading={payMutation.isPending}
+              onPress={() => payMutation.mutate()}
+              style={styles.actionBtn}
+              testID="pay-shift-btn"
+            >
+              Pay ${total} with Stripe
+            </Button>
+          )}
+          {isManager && shift.status === 'filled' && (shift.paymentStatus === 'paid' || shift.paymentStatus === 'paid_out') && (
             <Button size="lg" loading={completeMutation.isPending} onPress={handleComplete} style={styles.actionBtn}>
               Mark completed
             </Button>
+          )}
+          {isManager && shift.status === 'completed' && shift.paymentStatus === 'paid' && (
+            <Button
+              size="lg"
+              loading={payoutMutation.isPending}
+              onPress={() => payoutMutation.mutate()}
+              style={styles.actionBtn}
+              testID="send-payout-btn"
+            >
+              Send payout to lifeguard
+            </Button>
+          )}
+          {isManager && shift.status === 'completed' && shift.paymentStatus === 'paid_out' && (
+            <Badge variant="success" label="Payout sent" />
           )}
         </View>
       </ScrollView>

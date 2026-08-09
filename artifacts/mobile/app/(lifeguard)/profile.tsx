@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { nativeTheme } from '@workspace/latent-studio-ds/lib/native-theme';
 import { H2, H3, Body, Caption, Label } from '@workspace/latent-studio-ds/components/native/typography';
 import { Badge } from '@workspace/latent-studio-ds/components/native/badge';
@@ -27,9 +28,29 @@ function StarRating({ value }: { value: number }) {
 
 export default function LifeguardProfileScreen() {
   const { user, logout, refreshUser } = useAuth();
+  const qc = useQueryClient();
   const [phone, setPhone] = useState(user?.phone ?? '');
   const [savingPhone, setSavingPhone] = useState(false);
   const [phoneMessage, setPhoneMessage] = useState('');
+
+  const connectStatus = useQuery<{ hasAccount: boolean; onboarded: boolean }>({
+    queryKey: ['connect-status'],
+    queryFn: () => apiFetch('/connect/status'),
+    enabled: !!user,
+  });
+
+  const onboardMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<{ url: string }>('/connect/onboarding-link', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      }),
+    onSuccess: async (data) => {
+      await Linking.openURL(data.url);
+      qc.invalidateQueries({ queryKey: ['connect-status'] });
+    },
+  });
+
   if (!user) return null;
 
   async function savePhone() {
@@ -127,11 +148,36 @@ export default function LifeguardProfileScreen() {
         {/* Payment note */}
         <Card style={styles.card}>
           <CardContent>
-            <Label style={styles.cardLabel}>Payment</Label>
-            <Body style={styles.cardValue}>
-              ShiftGuard uses Zelle for payouts after each completed shift.
-              A small platform fee is deducted from both parties.
-            </Body>
+            <Label style={styles.cardLabel}>Stripe payouts</Label>
+            {connectStatus.data?.onboarded ? (
+              <>
+                <Badge variant="success" label="Payouts enabled" />
+                <Body style={[styles.cardValue, { marginTop: 8 }]}>
+                  You're all set to receive payouts to your bank on completed shifts.
+                </Body>
+              </>
+            ) : (
+              <>
+                <Body style={styles.cardValue}>
+                  Connect a bank account through Stripe to receive payouts on completed shifts.
+                  Managers pay via Stripe Checkout — you get the payout minus a 10% platform fee.
+                </Body>
+                <Button
+                  size="sm"
+                  loading={onboardMutation.isPending}
+                  onPress={() => onboardMutation.mutate()}
+                  style={styles.savePhoneBtn}
+                  testID="connect-stripe-btn"
+                >
+                  {connectStatus.data?.hasAccount ? 'Continue Stripe onboarding' : 'Set up Stripe payouts'}
+                </Button>
+                {onboardMutation.error ? (
+                  <Caption style={[styles.phoneMessage, { color: c.destructive }]}>
+                    {(onboardMutation.error as Error).message}
+                  </Caption>
+                ) : null}
+              </>
+            )}
           </CardContent>
         </Card>
 

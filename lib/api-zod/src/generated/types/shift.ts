@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Contact } from './contact';
+import type { ShiftPaymentStatus } from './shiftPaymentStatus';
 import type { ShiftStatus } from './shiftStatus';
 import type { User } from './user';
 
@@ -24,6 +25,7 @@ export interface Shift {
   /** Rules and requirements set by the employer */
   rules: string;
   status: ShiftStatus;
+  paymentStatus?: ShiftPaymentStatus;
   managerId: number;
   manager?: User;
   /** @nullable */
