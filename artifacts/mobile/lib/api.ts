@@ -1,23 +1,18 @@
 /**
  * Thin fetch helper — wraps fetch with the auth token from AsyncStorage.
- * On web the app is served same-origin so relative URLs work; on native we
- * build the absolute URL from EXPO_PUBLIC_DOMAIN which is set at build time.
+ * Uses the shared API_BASE_URL so web + native stay in sync.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import { API_BASE_URL } from './config';
 
-const BASE =
-  Platform.OS === 'web'
-    ? '/api'
-    : `https://${process.env.EXPO_PUBLIC_DOMAIN}/api`;
 const TOKEN_KEY = '@shiftguard/token';
 
 export async function apiFetch<T = unknown>(
   path: string,
-  opts: RequestInit = {}
+  opts: RequestInit = {},
 ): Promise<T> {
   const token = await AsyncStorage.getItem(TOKEN_KEY);
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     ...opts,
     headers: {
       'Content-Type': 'application/json',
@@ -25,7 +20,7 @@ export async function apiFetch<T = unknown>(
       ...(opts.headers ?? {}),
     },
   });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error ?? res.statusText);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((json as any).error ?? res.statusText);
   return json as T;
 }

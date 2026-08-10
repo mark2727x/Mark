@@ -3,6 +3,8 @@ import { eq, and, ilike, gte } from "drizzle-orm";
 import { db, shiftsTable, usersTable, ratingsTable } from "@workspace/db";
 import { CreateShiftBody as ShiftInput, UpdateShiftBody as ShiftUpdate } from "@workspace/api-zod";
 import { getUserIdFromToken, requireAuth, sanitizeUser } from "./auth";
+import { payoutShiftToLifeguard } from "./payments";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -204,7 +206,26 @@ router.post("/shifts/:id/complete", requireAuth, async (req: any, res): Promise<
     .set({ status: "completed" })
     .where(eq(shiftsTable.id, id))
     .returning();
-  res.json(await enrichShift(updated));
+
+  // Auto-payout: try to transfer to the lifeguard immediately. If the
+  // shift hasn't been paid yet or the lifeguard hasn't finished Connect
+  // onboarding, we just skip silently and the manager can retry via the
+  // manual "Send payout" button later.
+  let autoPayout:
+    | { attempted: boolean; sent: boolean; reason?: string }
+    | undefined;
+  try {
+    const result = await payoutShiftToLifeguard(id);
+    autoPayout = result.ok
+      ? { attempted: true, sent: true }
+      : { attempted: true, sent: false, reason: result.reason };
+  } catch (err) {
+    logger.error({ err, shiftId: id }, "Auto payout failed");
+    autoPayout = { attempted: true, sent: false, reason: (err as Error).message };
+  }
+
+  const enriched = await enrichShift(updated);
+  res.json({ ...enriched, autoPayout });
 });
 
 export default router;

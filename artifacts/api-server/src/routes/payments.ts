@@ -305,6 +305,94 @@ router.get(
 
 // ── Payout to lifeguard (after shift completion) ────────────────────────────
 
+export type PayoutResult =
+  | {
+      ok: true;
+      transferId: string;
+      amountCents: number;
+      platformFeeCents: number;
+    }
+  | { ok: false; reason: string; retriable: boolean };
+
+/**
+ * Send the destination transfer to the lifeguard's Connect account for a
+ * completed & paid shift. Used both by the manual POST /shifts/:id/payout
+ * endpoint and by the auto-payout hook that fires when a manager marks a
+ * shift completed. Idempotent — safe to call multiple times.
+ */
+export async function payoutShiftToLifeguard(
+  shiftId: number,
+): Promise<PayoutResult> {
+  const [shift] = await db
+    .select()
+    .from(shiftsTable)
+    .where(eq(shiftsTable.id, shiftId))
+    .limit(1);
+  if (!shift) return { ok: false, reason: "Shift not found", retriable: false };
+  if (shift.status !== "completed")
+    return {
+      ok: false,
+      reason: "Shift must be completed before payout",
+      retriable: false,
+    };
+  if (shift.paymentStatus === "paid_out" || shift.stripeTransferId)
+    return {
+      ok: false,
+      reason: "Payout already sent",
+      retriable: false,
+    };
+  if (shift.paymentStatus !== "paid")
+    return {
+      ok: false,
+      reason: "Shift has not been paid yet",
+      retriable: true,
+    };
+  if (!shift.workerId)
+    return {
+      ok: false,
+      reason: "Shift has no assigned lifeguard",
+      retriable: false,
+    };
+
+  const [worker] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, shift.workerId))
+    .limit(1);
+  if (!worker?.stripeConnectAccountId || !worker.stripeConnectOnboarded) {
+    return {
+      ok: false,
+      reason: "Lifeguard has not finished Stripe Connect onboarding yet",
+      retriable: true,
+    };
+  }
+
+  const { lifeguardNetCents, lifeguardFeeCents } = computeFeeBreakdown(shift);
+
+  const transfer = await stripe.transfers.create({
+    amount: lifeguardNetCents,
+    currency: "usd",
+    destination: worker.stripeConnectAccountId,
+    metadata: {
+      shift_id: String(shift.id),
+      manager_id: String(shift.managerId),
+      lifeguard_id: String(worker.id),
+    },
+  });
+
+  await db
+    .update(shiftsTable)
+    .set({ paymentStatus: "paid_out", stripeTransferId: transfer.id })
+    .where(eq(shiftsTable.id, shift.id));
+
+  return {
+    ok: true,
+    transferId: transfer.id,
+    amountCents: lifeguardNetCents,
+    platformFeeCents: lifeguardFeeCents,
+  };
+}
+
 router.post(
   "/shifts/:id/payout",
   requireAuth,
@@ -323,59 +411,16 @@ router.post(
       res.status(403).json({ error: "Only the manager can send the payout" });
       return;
     }
-    if (shift.status !== "completed") {
-      res
-        .status(400)
-        .json({ error: "Shift must be marked completed before payout" });
+
+    const result = await payoutShiftToLifeguard(id);
+    if (!result.ok) {
+      res.status(400).json({ error: result.reason });
       return;
     }
-    if (shift.paymentStatus !== "paid") {
-      res.status(400).json({ error: "Shift must be paid before payout" });
-      return;
-    }
-    if (!shift.workerId) {
-      res.status(400).json({ error: "Shift has no assigned lifeguard" });
-      return;
-    }
-    if (shift.stripeTransferId) {
-      res.status(400).json({ error: "Payout has already been sent" });
-      return;
-    }
-
-    const [worker] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, shift.workerId))
-      .limit(1);
-    if (!worker?.stripeConnectAccountId || !worker.stripeConnectOnboarded) {
-      res.status(400).json({
-        error: "Lifeguard has not finished Stripe Connect onboarding yet",
-      });
-      return;
-    }
-
-    const { lifeguardNetCents, lifeguardFeeCents } = computeFeeBreakdown(shift);
-
-    const transfer = await stripe.transfers.create({
-      amount: lifeguardNetCents,
-      currency: "usd",
-      destination: worker.stripeConnectAccountId,
-      metadata: {
-        shift_id: String(shift.id),
-        manager_id: String(shift.managerId),
-        lifeguard_id: String(worker.id),
-      },
-    });
-
-    await db
-      .update(shiftsTable)
-      .set({ paymentStatus: "paid_out", stripeTransferId: transfer.id })
-      .where(eq(shiftsTable.id, shift.id));
-
     res.json({
-      transferId: transfer.id,
-      amountCents: lifeguardNetCents,
-      platformFeeCents: lifeguardFeeCents,
+      transferId: result.transferId,
+      amountCents: result.amountCents,
+      platformFeeCents: result.platformFeeCents,
     });
   },
 );

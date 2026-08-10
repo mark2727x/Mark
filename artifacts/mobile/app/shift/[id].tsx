@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
+import { getPublicOrigin } from '@/lib/config';
 import { nativeTheme } from '@workspace/latent-studio-ds/lib/native-theme';
 import { Badge } from '@workspace/latent-studio-ds/components/native/badge';
 import { Button } from '@workspace/latent-studio-ds/components/native/button';
@@ -81,10 +82,21 @@ export default function ShiftDetailScreen() {
   });
 
   const completeMutation = useMutation({
-    mutationFn: () => apiFetch(`/shifts/${id}/complete`, { method: 'POST' }),
-    onSuccess: () => {
+    mutationFn: () =>
+      apiFetch<{
+        autoPayout?: { attempted: boolean; sent: boolean; reason?: string };
+      }>(`/shifts/${id}/complete`, { method: 'POST' }),
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['shift', id] });
       qc.invalidateQueries({ queryKey: ['manager-shifts', user?.id] });
+      qc.invalidateQueries({ queryKey: ['my-earnings'] });
+      const ap = data?.autoPayout;
+      if (ap?.attempted && !ap.sent && ap.reason) {
+        Alert.alert(
+          'Shift completed — payout pending',
+          `${ap.reason}. You can send it manually from this screen once it's ready.`,
+        );
+      }
     },
   });
 
@@ -94,10 +106,7 @@ export default function ShiftDetailScreen() {
         method: 'POST',
         body: JSON.stringify({
           shift_id: Number(id),
-          origin_url:
-            Platform.OS === 'web' && typeof window !== 'undefined'
-              ? window.location.origin
-              : `https://${process.env.EXPO_PUBLIC_DOMAIN}`,
+          origin_url: getPublicOrigin(),
         }),
       }),
     onSuccess: async (data) => {
@@ -318,9 +327,14 @@ export default function ShiftDetailScreen() {
             </>
           )}
           {isManager && shift.status === 'filled' && (shift.paymentStatus === 'paid' || shift.paymentStatus === 'paid_out') && (
-            <Button size="lg" loading={completeMutation.isPending} onPress={handleComplete} style={styles.actionBtn}>
-              Mark completed
-            </Button>
+            <>
+              <Button size="lg" loading={completeMutation.isPending} onPress={handleComplete} style={styles.actionBtn}>
+                Mark completed
+              </Button>
+              <Caption style={{ color: c.mutedForeground, textAlign: 'center' }}>
+                We'll auto-send the lifeguard their payout once you mark this completed.
+              </Caption>
+            </>
           )}
           {isManager && shift.status === 'completed' && shift.paymentStatus === 'paid' && (
             <Button
