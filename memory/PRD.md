@@ -43,10 +43,11 @@ Add so that payment can be through stripe.
 ## Preview environment (Emergent)
 - Supervisor now runs:
   - `backend` — Node/Express API on :8001 (routes at `/api/*`)
-  - `frontend` — lightweight preview dashboard on :3000 (browser demo of the Stripe flow — real product is the native Expo app)
+  - `frontend` — static server for the **Expo web build** on :3000 (`artifacts/mobile/server/serve-web.js` serving `artifacts/mobile/web-build/`)
   - `postgresql` — local Postgres on :5432 (DB `shiftguard`, user `shiftguard`)
-- Public preview URL: `https://stripe-payment-21.preview.emergentagent.com`
-- Schema pushed on Postgres via `pnpm --filter @workspace/db run push`
+- Public preview URL: `https://stripe-payment-21.preview.emergentagent.com` — shows the actual ShiftGuard app (Expo Router + react-native-web).
+- On web, the api client uses the same-origin `/api` base; on native it still uses `EXPO_PUBLIC_DOMAIN`. Checkout redirects use `window.location.href` on web and `expo-web-browser` on native.
+- To rebuild the web bundle after code changes: `cd artifacts/mobile && pnpm exec expo export --platform web --output-dir web-build`, then `sudo supervisorctl restart frontend`.
 
 ## Test flow
 - Register a lifeguard → open Profile → "Set up Stripe payouts" → complete Stripe onboarding (test data)

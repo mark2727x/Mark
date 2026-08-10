@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, Alert, Linking,
+  View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, Alert, Linking, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -94,12 +94,19 @@ export default function ShiftDetailScreen() {
         method: 'POST',
         body: JSON.stringify({
           shift_id: Number(id),
-          origin_url: `https://${process.env.EXPO_PUBLIC_DOMAIN}`,
+          origin_url:
+            Platform.OS === 'web' && typeof window !== 'undefined'
+              ? window.location.origin
+              : `https://${process.env.EXPO_PUBLIC_DOMAIN}`,
         }),
       }),
     onSuccess: async (data) => {
       if (data.checkout_url) {
-        await WebBrowser.openBrowserAsync(data.checkout_url);
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.location.href = data.checkout_url;
+        } else {
+          await WebBrowser.openBrowserAsync(data.checkout_url);
+        }
       }
       qc.invalidateQueries({ queryKey: ['shift', id] });
     },
