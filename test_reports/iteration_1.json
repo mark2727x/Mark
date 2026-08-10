@@ -1,0 +1,26 @@
+{
+  "summary": "Verified 'preview refused to connect' fix and full Stripe payment flow for ShiftGuard. Backend (Node/Express + Postgres) and preview dashboard (port 3000) are both reachable via https://stripe-payment-21.preview.emergentagent.com. All 7 backend pytest cases pass. UI end-to-end via Playwright: dashboard loads with 'API online' badge and populated 'Fee split' card, 'Create demo manager' seeds a manager, and 'Pay with Stripe Checkout' redirects to Stripe with a line-item breakdown of US$100.00 base + US$1.50 platform fee (1.5%) = US$101.50 total.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_shiftguard_stripe.py",
+    "/app/test_reports/pytest/shiftguard_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "auth.ts verify-email lowercases the incoming email before DB lookup, but /auth/register stores email as-provided (no normalisation at insert). Users who register with a mixed/upper-case email cannot verify (row not found → 400 'Invalid verification code'). Recommend lowercasing on insert or looking up case-insensitively. This bit our first test iteration.",
+    "Register error response returns the raw Zod `parsed.error.message` (JSON blob) instead of a friendly message; consider using zod's flatten/format for cleaner client-facing errors.",
+    "payments.ts webhook endpoint is mounted at /api/stripe/webhook (not /api/payments/webhook as one might expect from the router file name). Consider documenting or aligning path.",
+    "Only manager-side of the 3% split is charged at Checkout time; the lifeguard 1.5% deduction is applied at payout. This is by design but worth a docstring in payments.ts for future maintainers."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_shiftguard_stripe.py (new)"
+  ],
+  "success_rate": {"backend": "100% (7/7)", "frontend": "100% (dashboard load + demo manager + checkout redirect all working)"},
+  "test_credentials": "Seeded on-demand via preview dashboard 'Create demo manager' button (no static creds).",
+  "seed_data_creation": "Backend pytest seeds a fresh manager per module (test_manager_<ts>@example.com / TestPass123!) using dev-mode verificationCode. Playwright run also seeded demo-mgr-<ts>@shiftguard.dev via the dashboard button.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend is Node/Express at /app/artifacts/api-server (supervisor: backend). Preview dashboard at /app/artifacts/mobile/server (supervisor: frontend). Postgres runs locally via supervisor. Public URL: https://stripe-payment-21.preview.emergentagent.com — /api/* → backend, / → dashboard. Register requires fields: email (lowercase!), password, name (single string), role, phone (10+ digits). Verify-email needs {email, code}. Shift schema fields: title, location ('street, city, ST ZIP'), payRate, totalHours, startTime, certificationRequired, description, rules. Webhook at /api/stripe/webhook returns 400 for invalid signature. Stripe test card 4242 4242 4242 4242.",
+  "rca_of_the_issue": "Original 'preview refused to connect' was caused by (a) Postgres not provisioned and (b) supervisor not running the Node backend/preview services. Main agent resolved this by initialising Postgres, running `pnpm --filter @workspace/db run push`, and reconfiguring supervisor. Fix verified: backend health, payments config, register/verify/login, create-shift, checkout session creation (with Stripe URL reachable and correct fee breakdown), status polling, and webhook signature rejection all work."
+}

@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ShiftGuard — Preview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0d0b08;
+        --card: #17140f;
+        --border: #2b2620;
+        --muted: #8a8378;
+        --fg: #f4efe6;
+        --primary: #d6b45a;
+        --primary-fg: #1a160e;
+        --danger: #c56b6b;
+        --success: #7aa87a;
+        --radius: 4px;
+        --sans: 'Space Grotesk', system-ui, sans-serif;
+        --serif: 'Instrument Serif', Georgia, serif;
+        --mono: 'JetBrains Mono', ui-monospace, monospace;
+      }
+      * { box-sizing: border-box; }
+      html, body { background: var(--bg); color: var(--fg); font-family: var(--sans); margin: 0; }
+      body { min-height: 100vh; }
+      .shell { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+      header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+      h1 { font-family: var(--serif); font-size: 44px; font-weight: 400; margin: 0; letter-spacing: -0.5px; }
+      .badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 10px; border-radius: 999px; font-size: 12px;
+        border: 1px solid var(--border); color: var(--muted);
+        font-family: var(--mono);
+      }
+      .badge.ok { color: var(--success); border-color: var(--success); }
+      .badge.err { color: var(--danger); border-color: var(--danger); }
+      .lede { color: var(--muted); font-size: 16px; max-width: 640px; margin: 0 0 32px; line-height: 1.55; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 32px; }
+      .card {
+        background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 20px;
+      }
+      .card h2 { font-family: var(--sans); font-weight: 600; font-size: 15px; margin: 0 0 12px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted); }
+      .card p { margin: 0; color: var(--fg); font-size: 14px; line-height: 1.55; }
+      .card p + p { margin-top: 8px; }
+      .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; font-size: 13px; }
+      .kv dt { color: var(--muted); font-family: var(--mono); }
+      .kv dd { margin: 0; font-family: var(--mono); color: var(--fg); word-break: break-all; }
+      .section-title {
+        font-family: var(--serif); font-size: 24px; font-weight: 400;
+        margin: 32px 0 12px; letter-spacing: -0.2px;
+      }
+      form { display: flex; flex-direction: column; gap: 10px; }
+      label { font-size: 13px; color: var(--muted); font-family: var(--mono); }
+      input, select, button {
+        font: inherit; color: inherit; background: transparent;
+        border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 10px 12px;
+      }
+      input:focus, select:focus { outline: none; border-color: var(--primary); }
+      button {
+        background: var(--primary); color: var(--primary-fg); border-color: var(--primary);
+        cursor: pointer; font-weight: 600;
+        transition: transform 0.06s ease, filter 0.15s ease;
+      }
+      button:hover { filter: brightness(1.05); }
+      button:active { transform: translateY(1px); }
+      button.ghost { background: transparent; color: var(--fg); border-color: var(--border); font-weight: 500; }
+      button.ghost:hover { border-color: var(--primary); color: var(--primary); }
+      .row { display: flex; gap: 8px; flex-wrap: wrap; }
+      .log {
+        margin-top: 16px; font-family: var(--mono); font-size: 12px;
+        background: #08070a; border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 12px; max-height: 240px; overflow: auto; white-space: pre-wrap; color: var(--muted);
+      }
+      .log .ok { color: var(--success); }
+      .log .err { color: var(--danger); }
+      code { font-family: var(--mono); background: var(--bg); padding: 1px 6px; border-radius: 3px; border: 1px solid var(--border); font-size: 12px; }
+      a { color: var(--primary); }
+      .footnote { color: var(--muted); font-size: 12px; margin-top: 24px; line-height: 1.6; }
+      .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      @media (max-width: 560px) { .cols { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <h1>ShiftGuard</h1>
+        <span class="badge" id="api-badge">checking…</span>
+      </header>
+      <p class="lede">
+        Lifeguard shift marketplace — pool managers post shifts, lifeguards
+        pick them up and get paid. The real product is a native Expo
+        mobile app; this page is a browser demo of the Stripe payment flow
+        (Checkout + Connect Express payouts) so you can preview it without
+        installing Expo Go.
+      </p>
+
+      <div class="grid">
+        <div class="card">
+          <h2>API</h2>
+          <dl class="kv" id="api-info">
+            <dt>Health</dt><dd id="api-health">…</dd>
+            <dt>Stripe key</dt><dd id="stripe-key">…</dd>
+            <dt>Platform fee</dt><dd id="fee-split">…</dd>
+          </dl>
+        </div>
+        <div class="card">
+          <h2>Fee split</h2>
+          <p>Manager pays a <strong>1.5%</strong> surcharge on top of the shift price.</p>
+          <p>Lifeguard has <strong>1.5%</strong> deducted from their payout.</p>
+          <p>Business net = <strong>3%</strong> per shift. Stripe processing fees are separate.</p>
+        </div>
+        <div class="card">
+          <h2>Mobile app</h2>
+          <p>Native app lives in <code>artifacts/mobile</code> (Expo Router).</p>
+          <p>Run <code>pnpm --filter @workspace/mobile dev</code> and scan the QR in Expo Go.</p>
+        </div>
+      </div>
+
+      <h2 class="section-title">Try the payment flow</h2>
+
+      <div class="cols">
+        <div class="card">
+          <h2>1 · Sign in as a manager</h2>
+          <form id="login-form">
+            <label for="login-email">Email</label>
+            <input id="login-email" type="email" required placeholder="manager@example.com" />
+            <label for="login-password">Password</label>
+            <input id="login-password" type="password" required placeholder="********" />
+            <div class="row">
+              <button type="submit">Log in</button>
+              <button type="button" class="ghost" id="seed-manager-btn">Create demo manager</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>2 · Post a shift + pay</h2>
+          <form id="pay-form">
+            <label for="shift-title">Shift title</label>
+            <input id="shift-title" required value="Saturday lifeguard shift" />
+            <label for="shift-pay">Hourly rate (USD)</label>
+            <input id="shift-pay" type="number" min="10" step="0.01" required value="25" />
+            <label for="shift-hours">Hours</label>
+            <input id="shift-hours" type="number" min="1" step="0.5" required value="4" />
+            <button type="submit" id="pay-btn" disabled>Sign in first</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="log" id="log">Waiting for API…</div>
+
+      <p class="footnote">
+        Test card: <code>4242 4242 4242 4242</code>, any future expiry, any CVC.
+        Postbacks are logged above.
+        <br />
+        Preview URL: <code id="url"></code> — API base:
+        <code id="api-base"></code>.
+      </p>
+    </div>
+
+    <script>
+      const API_BASE = `${location.origin}/api`;
+      document.getElementById('url').textContent = location.origin;
+      document.getElementById('api-base').textContent = API_BASE;
+
+      const logEl = document.getElementById('log');
+      const logs = [];
+      function log(kind, msg) {
+        const tag = kind === 'ok' ? 'ok' : kind === 'err' ? 'err' : '';
+        logs.unshift(
+          `<span class="${tag}">[${new Date().toLocaleTimeString()}] ${msg}</span>`,
+        );
+        logEl.innerHTML = logs.slice(0, 40).join('\n');
+      }
+
+      let token = localStorage.getItem('sg_token') || '';
+      let userId = Number(localStorage.getItem('sg_user_id') || 0) || null;
+
+      async function api(path, opts = {}) {
+        const res = await fetch(`${API_BASE}${path}`, {
+          ...opts,
+          headers: {
+            'content-type': 'application/json',
+            ...(token ? { authorization: `Bearer ${token}` } : {}),
+            ...(opts.headers || {}),
+          },
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(body.error || `HTTP ${res.status}`);
+        }
+        return body;
+      }
+
+      function setSignedIn(state) {
+        document.getElementById('pay-btn').disabled = !state;
+        document.getElementById('pay-btn').textContent = state
+          ? 'Pay with Stripe Checkout'
+          : 'Sign in first';
+      }
+      setSignedIn(!!token);
+
+      // ── Health + config ────────────────────────────────────────────────
+      (async () => {
+        const badge = document.getElementById('api-badge');
+        try {
+          const h = await api('/healthz');
+          badge.textContent = 'API online';
+          badge.classList.add('ok');
+          document.getElementById('api-health').textContent = h.status || 'ok';
+        } catch (e) {
+          badge.textContent = 'API offline';
+          badge.classList.add('err');
+          document.getElementById('api-health').textContent = e.message;
+          log('err', `Health check failed: ${e.message}`);
+          return;
+        }
+
+        try {
+          const cfg = await api('/payments/config');
+          document.getElementById('stripe-key').textContent = cfg.publishableKey
+            ? cfg.publishableKey.slice(0, 20) + '…'
+            : '(none)';
+          const managerPct = ((cfg.managerFeeBps || 150) / 100).toFixed(1);
+          const lifePct = ((cfg.lifeguardFeeBps || 150) / 100).toFixed(1);
+          document.getElementById('fee-split').textContent =
+            `${managerPct}% manager + ${lifePct}% lifeguard = ${((cfg.platformFeeBps || 300) / 100).toFixed(1)}%`;
+          log('ok', 'Loaded payments config');
+        } catch (e) {
+          log('err', `Config failed: ${e.message}`);
+        }
+      })();
+
+      // ── Seed a demo manager ────────────────────────────────────────────
+      document.getElementById('seed-manager-btn').onclick = async () => {
+        const email = `demo-mgr-${Date.now()}@shiftguard.dev`;
+        const password = 'password123';
+        try {
+          const reg = await api('/auth/register', {
+            method: 'POST',
+            body: JSON.stringify({
+              email, password,
+              phone: '5555550100',
+              name: 'Demo Manager',
+              role: 'manager',
+            }),
+          });
+          if (reg.verificationCode) {
+            await api('/auth/verify-email', {
+              method: 'POST',
+              body: JSON.stringify({ email, code: reg.verificationCode }),
+            });
+          }
+          const auth = await api('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password }),
+          });
+          token = auth.token;
+          userId = auth.user.id;
+          localStorage.setItem('sg_token', token);
+          localStorage.setItem('sg_user_id', String(userId));
+          setSignedIn(true);
+          document.getElementById('login-email').value = email;
+          document.getElementById('login-password').value = password;
+          log('ok', `Created demo manager ${email}`);
+        } catch (e) {
+          log('err', `Seed failed: ${e.message}`);
+        }
+      };
+
+      // ── Login ─────────────────────────────────────────────────────────
+      document.getElementById('login-form').onsubmit = async (ev) => {
+        ev.preventDefault();
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+        try {
+          const auth = await api('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password }),
+          });
+          token = auth.token;
+          userId = auth.user.id;
+          localStorage.setItem('sg_token', token);
+          localStorage.setItem('sg_user_id', String(userId));
+          setSignedIn(true);
+          log('ok', `Signed in as ${email} (id ${userId}, role ${auth.user.role})`);
+        } catch (e) {
+          log('err', `Login failed: ${e.message}`);
+        }
+      };
+
+      // ── Create shift + open Checkout ───────────────────────────────────
+      document.getElementById('pay-form').onsubmit = async (ev) => {
+        ev.preventDefault();
+        if (!token) { log('err', 'Sign in first'); return; }
+
+        const title = document.getElementById('shift-title').value.trim();
+        const payRate = Number(document.getElementById('shift-pay').value);
+        const hours = Number(document.getElementById('shift-hours').value);
+
+        try {
+          const shift = await api('/shifts', {
+            method: 'POST',
+            body: JSON.stringify({
+              title,
+              location: '123 Main St, Springfield, IL 62704',
+              payRate,
+              totalHours: hours,
+              startTime: new Date(Date.now() + 2 * 24 * 3600 * 1000).toISOString(),
+              certificationRequired: 'Lifeguard',
+              description: 'Demo shift from the preview dashboard',
+              rules: 'Arrive 10 minutes early',
+            }),
+          });
+          log('ok', `Created shift #${shift.id} for $${(payRate * hours).toFixed(2)}`);
+
+          // Skip pickup — pay directly for the shift as the manager.
+          const session = await api('/payments/checkout', {
+            method: 'POST',
+            body: JSON.stringify({
+              shift_id: shift.id,
+              origin_url: location.origin,
+            }),
+          });
+          if (session.checkout_url) {
+            log('ok', `Opening Stripe Checkout for session ${session.session_id}`);
+            window.location.href = session.checkout_url;
+          } else {
+            log('err', 'No checkout_url returned');
+          }
+        } catch (e) {
+          log('err', `Payment failed: ${e.message}`);
+        }
+      };
+
+      // ── Handle return from Stripe Checkout ─────────────────────────────
+      const qs = new URLSearchParams(location.search);
+      const returnedSession = qs.get('session_id');
+      if (returnedSession && location.pathname === '/payment/success') {
+        log('ok', `Returned from Checkout — polling session ${returnedSession}`);
+        (async () => {
+          for (let i = 0; i < 6; i++) {
+            try {
+              const s = await api(`/payments/status/${returnedSession}`);
+              log('ok', `status=${s.status} payment=${s.payment_status}`);
+              if (s.payment_status === 'paid') break;
+            } catch (e) {
+              log('err', `Status check failed: ${e.message}`);
+            }
+            await new Promise((r) => setTimeout(r, 1500));
+          }
+        })();
+      } else if (location.pathname === '/payment/cancel') {
+        log('err', 'Checkout cancelled — try again anytime.');
+      }
+    </script>
+  </body>
+</html>
