@@ -11,8 +11,12 @@ import React, {
   type ReactNode,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
-const BASE = `https://${process.env.EXPO_PUBLIC_DOMAIN}/api`;
+const BASE =
+  Platform.OS === 'web'
+    ? '/api'
+    : `https://${process.env.EXPO_PUBLIC_DOMAIN}/api`;
 
 export type UserRole = 'lifeguard' | 'manager';
 

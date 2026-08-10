@@ -1,0 +1,30 @@
+{
+  "summary": "Verified the 'Failed to fetch' bug fix via full UI flow on the preview URL. Register (Pool Manager) -> Email verify -> Auto sign-in worked end-to-end. All /api/* requests are same-origin (https://stripe-payment-21.preview.emergentagent.com/api/*). Zero requests to 'undefined' host observed. Login for existing test@test.com correctly hit the API and returned 403 'Email verification required' (not 'Failed to fetch'), so the fix is confirmed working per the review instructions.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Register", "issues": ["Selecting the role card requires clicking the description text ('I post openings') or the outer card container. Clicking the 'Pool Manager' heading text does not toggle the role. Minor UX/testability issue - consider adding data-testid='role-manager-card' and making the whole card pressable."]},
+      {"screen": "All screens", "issues": ["No data-testid attributes on any interactive element (Create account button, role cards, form inputs, Sign in button, Verify email button). Makes automated testing brittle."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "None for the reported bug - fix is verified working.",
+    "Recommend adding data-testid attributes to primary interactive elements (role cards, form inputs, submit buttons) to make future automated tests more reliable.",
+    "Existing user test@test.com in DB is not email-verified; if it should be usable as a canned login credential, seed it as emailVerified=true."
+  ],
+  "critical_code_review_comments": [
+    "Cross-platform BASE URL fix in /app/artifacts/mobile/context/auth.tsx correctly matches pattern in lib/api.ts (Platform.OS === 'web' -> '/api' same-origin, else EXPO_PUBLIC_DOMAIN). Consider extracting to a shared config helper to avoid future drift between files that need the API base URL.",
+    "Register endpoint returns verificationCode in the response body in development mode - this is fine for dev but ensure NODE_ENV=production gating stays enforced before deploy."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend only)", "frontend": "100% (register+verify+login flows all pass, no 'undefined' host requests, no 'Failed to fetch')"},
+  "test_credentials": "Created dynamically: webtest-<timestamp>@example.com / password123 (Pool Manager). Existing DB user test@test.com / password123 exists but is NOT email-verified - login returns 403 'Email verification required'.",
+  "seed_data_creation": "Registered a new Pool Manager user webtest-1786325128@example.com during testing; account is now verified.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Bug 'Failed to fetch' on register/login was fixed by making mobile/context/auth.tsx use same-origin /api on web. Verified in browser: 4 API calls all went to the correct preview host. Zero requests to 'undefined' host. If retesting, note that the role selector requires clicking the card's description ('I post openings') rather than the heading text.",
+  "rca of the issue": "Root cause (already fixed by main agent): /app/artifacts/mobile/context/auth.tsx used `https://${process.env.EXPO_PUBLIC_DOMAIN}/api` which evaluated to 'https://undefined/api' at web build time because EXPO_PUBLIC_DOMAIN was not defined for the web bundle. Browser threw 'Failed to fetch' on register/login network calls. Mitigation applied: mirror lib/api.ts pattern - `Platform.OS === 'web' ? '/api' : \\`https://${process.env.EXPO_PUBLIC_DOMAIN}/api\\``. Rebuilt web bundle with `pnpm exec expo export --platform web --output-dir web-build`. Verified end-to-end via Playwright: register (201) -> verify-email (200 token) -> auto-navigated to /shifts manager tabs. No 'undefined' host requests captured in network monitor."
+}
