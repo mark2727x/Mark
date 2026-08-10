@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { nativeTheme } from '@workspace/latent-studio-ds/lib/native-theme';
 import { H2, H3, Body, Caption, Label } from '@workspace/latent-studio-ds/components/native/typography';
@@ -28,7 +29,13 @@ function StarRating({ value }: { value: number }) {
 
 export default function LifeguardProfileScreen() {
   const { user, logout, refreshUser } = useAuth();
+  const router = useRouter();
   const qc = useQueryClient();
+
+  const handleSignOut = async () => {
+    await logout();
+    router.replace('/(auth)/welcome');
+  };
   const [phone, setPhone] = useState(user?.phone ?? '');
   const [savingPhone, setSavingPhone] = useState(false);
   const [phoneMessage, setPhoneMessage] = useState('');
@@ -182,7 +189,7 @@ export default function LifeguardProfileScreen() {
           </CardContent>
         </Card>
 
-        <Button variant="outline" style={styles.logoutBtn} onPress={logout}>
+        <Button variant="outline" style={styles.logoutBtn} onPress={handleSignOut} testID="signout-btn">
           Sign out
         </Button>
       </ScrollView>

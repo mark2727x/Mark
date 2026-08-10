@@ -18,6 +18,11 @@ export default function PickRoleScreen() {
   const router = useRouter();
   const { user, setRole, verifyCertificate, logout } = useAuth();
 
+  const handleUseDifferentAccount = async () => {
+    await logout();
+    router.replace('/(auth)/welcome');
+  };
+
   const [role, setRoleState] = useState<UserRole>('lifeguard');
   const [phone, setPhone] = useState(user?.phone ?? '');
   const [certificateType, setCertificateType] = useState<string>(CERT_TYPES[0]);
@@ -183,7 +188,7 @@ export default function PickRoleScreen() {
             Finish setting up
           </Button>
 
-          <TouchableOpacity onPress={logout} style={styles.signOut}>
+          <TouchableOpacity onPress={handleUseDifferentAccount} style={styles.signOut}>
             <Caption style={styles.signOutText}>Use a different account</Caption>
           </TouchableOpacity>
         </View>

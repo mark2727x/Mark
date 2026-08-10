@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { nativeTheme } from '@workspace/latent-studio-ds/lib/native-theme';
 import { H2, H3, Body, Caption, Label } from '@workspace/latent-studio-ds/components/native/typography';
 import { Card, CardContent } from '@workspace/latent-studio-ds/components/native/card';
@@ -24,9 +25,14 @@ function StarRating({ value }: { value: number }) {
 
 export default function ManagerProfileScreen() {
   const { user, logout, refreshUser } = useAuth();
+  const router = useRouter();
   const [phone, setPhone] = useState(user?.phone ?? '');
   const [savingPhone, setSavingPhone] = useState(false);
   const [phoneMessage, setPhoneMessage] = useState('');
+  const handleSignOut = async () => {
+    await logout();
+    router.replace('/(auth)/welcome');
+  };
   if (!user) return null;
 
   async function savePhone() {
@@ -109,7 +115,7 @@ export default function ManagerProfileScreen() {
           </CardContent>
         </Card>
 
-        <Button variant="outline" style={styles.logoutBtn} onPress={logout}>
+        <Button variant="outline" style={styles.logoutBtn} onPress={handleSignOut} testID="signout-btn">
           Sign out
         </Button>
       </ScrollView>
