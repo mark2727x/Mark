@@ -10,6 +10,7 @@ import { Input } from '@workspace/latent-studio-ds/components/native/input';
 import { H1, Body, Caption, Label } from '@workspace/latent-studio-ds/components/native/typography';
 import { useAuth } from '@/context/auth';
 import type { UserRole } from '@/context/auth';
+import { isGoogleAuthAvailable, startGoogleSignIn } from '@/lib/google-auth';
 
 const c = nativeTheme.colors.dark;
 const r = nativeTheme.radius;
@@ -129,6 +130,27 @@ export default function RegisterScreen() {
 
         <H1 style={styles.heading}>Create account</H1>
         <Body style={styles.sub}>Join ShiftGuard as a lifeguard or pool manager</Body>
+
+        {isGoogleAuthAvailable && (
+          <View style={styles.googleWrap}>
+            <Button
+              variant="outline"
+              size="lg"
+              onPress={startGoogleSignIn}
+              testID="google-signup-btn"
+            >
+              Continue with Google
+            </Button>
+            <Caption style={styles.googleHint}>
+              We'll use your Google email — you'll add the rest of your details next.
+            </Caption>
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Caption style={styles.dividerText}>or sign up with email</Caption>
+              <View style={styles.dividerLine} />
+            </View>
+          </View>
+        )}
 
         {/* Role selector */}
         <View style={styles.roleRow}>
@@ -291,4 +313,20 @@ const styles = StyleSheet.create({
   switchRow: { marginTop: 28, alignItems: 'center' },
   switchText: { color: c.mutedForeground },
   switchLink: { color: c.primary, fontFamily: f.sansMedium },
+  googleWrap: { marginBottom: 24, gap: 12 },
+  googleHint: { color: c.mutedForeground, textAlign: 'center', lineHeight: 17 },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: c.border,
+  },
+  dividerText: {
+    color: c.mutedForeground,
+  },
 });

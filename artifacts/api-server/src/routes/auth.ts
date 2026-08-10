@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "crypto";
 import { db, usersTable } from "@workspace/db";
 import { RegisterBody, LoginBody } from "@workspace/api-zod";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -267,7 +268,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   const { email, password } = parsed.data;
   const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
 
-  if (!user || !verifyPassword(password, user.passwordHash)) {
+  if (!user || !user.passwordHash || !verifyPassword(password, user.passwordHash)) {
     res.status(401).json({ error: "Invalid email or password" });
     return;
   }
@@ -357,6 +358,240 @@ router.get("/auth/me", requireAuth, async (req: any, res): Promise<void> => {
     return;
   }
   res.json(sanitizeUser(user, { includePhone: true }));
+});
+
+// ── Password reset ──────────────────────────────────────────────────────────
+//
+// Two-step flow, mirroring the email-verification pattern:
+//   POST /auth/forgot-password  → email + 6-digit code (returned inline in dev)
+//   POST /auth/reset-password   → email + code + newPassword
+// We deliberately return 200 for unknown emails so we don't leak which
+// addresses are registered.
+
+router.post("/auth/forgot-password", async (req, res): Promise<void> => {
+  const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  if (!email) {
+    res.status(400).json({ error: "Email is required" });
+    return;
+  }
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+  if (!user) {
+    res.json({ ok: true });
+    return;
+  }
+  const code = makeVerificationCode();
+  const expires = new Date(Date.now() + 30 * 60 * 1000); // 30 min
+  await db.update(usersTable)
+    .set({ passwordResetCode: code, passwordResetExpiresAt: expires })
+    .where(eq(usersTable.id, user.id));
+
+  // In production this is where we'd send an email via SendGrid/Resend.
+  // For now we just log it and (in dev) return it inline so testers can
+  // exercise the flow without a real SMTP setup.
+  logger.info({ email, code }, "Password reset code issued");
+
+  res.json({
+    ok: true,
+    resetCode: process.env.NODE_ENV === "production" ? undefined : code,
+  });
+});
+
+router.post("/auth/reset-password", async (req, res): Promise<void> => {
+  const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  const code = typeof req.body?.code === "string" ? req.body.code.trim() : "";
+  const newPassword = typeof req.body?.newPassword === "string" ? req.body.newPassword : "";
+  if (!email || !code || newPassword.length < 8) {
+    res.status(400).json({ error: "Email, code, and a password of at least 8 characters are required" });
+    return;
+  }
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+  if (
+    !user ||
+    !user.passwordResetCode ||
+    user.passwordResetCode !== code ||
+    !user.passwordResetExpiresAt ||
+    user.passwordResetExpiresAt.getTime() < Date.now()
+  ) {
+    res.status(400).json({ error: "Reset code is invalid or expired" });
+    return;
+  }
+
+  const [updated] = await db.update(usersTable)
+    .set({
+      passwordHash: hashPassword(newPassword),
+      passwordResetCode: null,
+      passwordResetExpiresAt: null,
+      // A password reset also implicitly verifies the email — you only got
+      // the code by proving you can read email at that address.
+      emailVerified: true,
+      emailVerificationCode: null,
+      emailVerificationExpiresAt: null,
+    })
+    .where(eq(usersTable.id, user.id))
+    .returning();
+
+  res.json(issueAuth(updated));
+});
+
+// ── Emergent-managed Google Auth ────────────────────────────────────────────
+//
+// Frontend redirects the user to https://auth.emergentagent.com/?redirect=<url>
+// and the returned redirect URL includes `#session_id=<sid>`. The frontend
+// then POSTs the session_id here; we exchange it for a Google profile on the
+// Emergent Auth service and upsert a ShiftGuard user by email. We issue our
+// own JWT (same makeToken helper) so the rest of the API keeps working with
+// Bearer tokens.
+
+const EMERGENT_SESSION_DATA_URL =
+  "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data";
+
+router.post("/auth/google-session", async (req, res): Promise<void> => {
+  const sessionId =
+    typeof req.body?.session_id === "string" ? req.body.session_id.trim() : "";
+  if (!sessionId) {
+    res.status(400).json({ error: "session_id is required" });
+    return;
+  }
+
+  let profile: {
+    id: string;
+    email: string;
+    name: string;
+    picture?: string;
+  };
+  try {
+    const upstream = await fetch(EMERGENT_SESSION_DATA_URL, {
+      headers: { "X-Session-ID": sessionId },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!upstream.ok) {
+      res.status(401).json({
+        error: `Google session could not be verified (${upstream.status})`,
+      });
+      return;
+    }
+    profile = (await upstream.json()) as typeof profile;
+  } catch {
+    res.status(502).json({ error: "Google auth service is unreachable" });
+    return;
+  }
+
+  const email = profile.email?.trim().toLowerCase();
+  if (!email) {
+    res.status(400).json({ error: "Google profile missing email" });
+    return;
+  }
+
+  const [existing] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.email, email))
+    .limit(1);
+
+  let user;
+  if (existing) {
+    [user] = await db
+      .update(usersTable)
+      .set({
+        googleId: profile.id,
+        avatarUrl: profile.picture ?? existing.avatarUrl ?? null,
+        // Auto-verify email — Google already did.
+        emailVerified: true,
+        emailVerificationCode: null,
+        emailVerificationExpiresAt: null,
+      })
+      .where(eq(usersTable.id, existing.id))
+      .returning();
+  } else {
+    [user] = await db
+      .insert(usersTable)
+      .values({
+        email,
+        name: profile.name || email.split("@")[0],
+        googleId: profile.id,
+        avatarUrl: profile.picture ?? null,
+        emailVerified: true,
+        // role/passwordHash intentionally null — user picks a role next.
+      })
+      .returning();
+  }
+
+  res.json({
+    ...issueAuth(user),
+    needsRole: !user.role,
+  });
+});
+
+router.post("/auth/set-role", requireAuth, async (req: any, res): Promise<void> => {
+  const role = req.body?.role;
+  if (role !== "lifeguard" && role !== "manager") {
+    res.status(400).json({ error: "role must be 'lifeguard' or 'manager'" });
+    return;
+  }
+  const phone =
+    typeof req.body?.phone === "string" ? req.body.phone.trim() : "";
+
+  const [current] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, req.userId))
+    .limit(1);
+  if (!current) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  if (current.role) {
+    res.status(400).json({ error: "Role is already set" });
+    return;
+  }
+
+  if (role === "lifeguard") {
+    const details = cleanCertificateDetails({
+      association: req.body?.certificateAssociation,
+      certificateType: req.body?.certificateType,
+      certificateNumber: req.body?.certificateNumber,
+    });
+    if (!details) {
+      res.status(400).json({
+        error:
+          "Lifeguards must provide a valid certificate association, type, and number",
+      });
+      return;
+    }
+    try {
+      const result = await lookupCertificate(details);
+      if (!result.verified) {
+        res.status(400).json({
+          error: "We could not find that certificate in the American Red Cross lookup",
+        });
+        return;
+      }
+    } catch (error: any) {
+      res.status(503).json({ error: error.message });
+      return;
+    }
+    const [updated] = await db
+      .update(usersTable)
+      .set({
+        role,
+        phone: phone || current.phone,
+        certificateAssociation: details.association,
+        certificateType: details.certificateType,
+        certificateNumber: details.certificateNumber,
+        certificateVerifiedAt: new Date(),
+      })
+      .where(eq(usersTable.id, current.id))
+      .returning();
+    res.json(sanitizeUser(updated, { includePhone: true }));
+    return;
+  }
+
+  const [updated] = await db
+    .update(usersTable)
+    .set({ role, phone: phone || current.phone })
+    .where(eq(usersTable.id, current.id))
+    .returning();
+  res.json(sanitizeUser(updated, { includePhone: true }));
 });
 
 export function sanitizeUser(user: any, options: { includePhone?: boolean } = {}) {

@@ -1,0 +1,34 @@
+{
+  "summary": "End-to-end verification of (1) register/login regression fix returning JSON not HTML, (2) password reset backend + UI flow, (3) Google sign-in button placement on Login/Register screens (removed from Welcome), and (4) Stripe /payments/config regression. 8/8 pytest backend tests pass. UI flow verified: Welcome has no Google button; Login has Google + Forgot password link; Register has Google + 'or sign up with email' divider + hint text; Forgot->Reset navigation pre-fills the 6-digit code in URL and input; submitting new password logs the user in and old password is rejected by /api/auth/login (401) while new password works (200).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Auth screens (register / forgot-password / reset-password)", "issues": ["React-Native-Web is NOT emitting most testID props as data-testid on the DOM. Only [data-testid=google-signin-btn-login] and [data-testid=forgot-password-link] on the login screen are actually present. The following advertised testIDs are missing from the rendered DOM: google-signup-btn (register), forgot-submit-btn (forgot-password), reset-submit-btn (reset-password). Functionality works, but automated tests must fall back to text/placeholder selectors."]},
+      {"screen": "forgot-password / reset-password", "issues": ["Multiple hidden shadow <input> elements are present in the DOM (RN-Web autofill helpers). Playwright's default first-visible selector matches the hidden one — E2E tests need .last or offsetParent filtering. Consider using expo-router's <Head> or a native <input> directly to avoid hidden duplicates."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_auth_reset.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "OPTIONAL: Make testID prop-forwarding consistent for the DS Button/Input on web so data-testid attributes advertised in code actually appear in the DOM (currently only Button on login screen exposes them). Verify google-signup-btn / forgot-submit-btn / reset-submit-btn render as data-testid on web-build.",
+    "OPTIONAL: The hidden autofill shadow inputs on RN-Web make E2E selectors brittle — pin the visible input with placeholder-based locators or add explicit data-testid on the <TextInput> underlying element."
+  ],
+  "critical_code_review_comments": [
+    "auth.ts /auth/forgot-password correctly returns 200 with {ok:true} for unknown emails (no info leak) and returns resetCode inline only when NODE_ENV != 'production' — good.",
+    "auth.ts /auth/reset-password correctly invalidates the old passwordHash and returns fresh token; also sets emailVerified=true (reasonable since possession of the emailed code proves ownership).",
+    "Password reset code TTL is 30 min; make sure passwordResetExpiresAt is a timestamp-with-timezone column in Drizzle schema so the Date.getTime() comparison remains correct across pod restarts.",
+    "Nice: /auth/login now handles nullable passwordHash defensively (`!user.passwordHash || !verifyPassword(...)` → 401), which supports Google-only accounts without leaking their existence."
+  ],
+  "updated_files": ["/app/backend/tests/test_auth_reset.py"],
+  "success_rate": {"backend": "100% (8/8 pytest)", "frontend": "100% functional (welcome/login/register/forgot/reset all verified visually + via API)"},
+  "test_credentials": "Dynamically created each run: uitest-<ts>@example.com / password123 (Pool Manager). Test run above created uitest-1786363616413@example.com whose password was reset to newpassword789 during testing.",
+  "seed_data_creation": "Registered + verified 2 users during this iteration: resettest-<ts>@example.com (pytest module fixture, password reset to newpassword456) and uitest-1786363616413@example.com (UI flow, password reset to newpassword789).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All three review items pass end-to-end. Backend tests live at /app/backend/tests/test_auth_reset.py and are runnable with `pytest /app/backend/tests/test_auth_reset.py -v`. When writing Playwright tests against RN-Web auth screens, DON'T rely on data-testid on register/forgot/reset screens — use placeholder-based locators with .last (there are hidden autofill shadow <input>s at indices 0/1). Google button redirect confirmed reaches https://auth.emergentagent.com/oauth/?redirect=...",
+  "rca of the issue": "Not applicable — this iteration verifies fixes already applied by the main agent (postgres bootstrap + password reset endpoints + Google button placement + forgot-password UI). All three assertions pass."
+}

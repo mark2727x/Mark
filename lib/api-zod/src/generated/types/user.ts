@@ -13,7 +13,10 @@ export interface User {
   /** Present for the authenticated user and assigned shift participants only */
   phone?: string;
   name: string;
-  role: UserRole;
+  /** @nullable */
+  role?: UserRole;
+  /** @nullable */
+  avatarUrl?: string | null;
   /** @nullable */
   bio?: string | null;
   /** @nullable */

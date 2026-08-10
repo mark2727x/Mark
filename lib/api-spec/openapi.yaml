@@ -816,7 +816,7 @@ components:
     # ── Users ─────────────────────────────────────────────────────────────────
     User:
       type: object
-      required: [id, email, name, role, ratingAvg, ratingCount, createdAt]
+      required: [id, email, name, ratingAvg, ratingCount, createdAt]
       properties:
         id:
           type: number
@@ -828,8 +828,10 @@ components:
         name:
           type: string
         role:
-          type: string
-          enum: [lifeguard, manager]
+          type: ["string", "null"]
+          enum: [lifeguard, manager, null]
+        avatarUrl:
+          type: ["string", "null"]
         bio:
           type: ["string", "null"]
         certifications:

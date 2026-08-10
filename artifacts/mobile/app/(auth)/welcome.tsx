@@ -118,4 +118,18 @@ const styles = StyleSheet.create({
   btnPrimary: {
     width: '100%',
   },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginVertical: 4,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: c.border,
+  },
+  dividerText: {
+    color: c.mutedForeground,
+  },
 });

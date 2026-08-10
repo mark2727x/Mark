@@ -22,7 +22,8 @@ export interface AuthUser {
   email: string;
   phone: string;
   name: string;
-  role: UserRole;
+  role: UserRole | null;
+  avatarUrl?: string | null;
   bio?: string | null;
   certifications?: string[] | null;
   certificateAssociation?: string | null;
@@ -63,6 +64,16 @@ interface AuthActions {
   login(email: string, password: string): Promise<AuthUser>;
   verifyEmail(email: string, code: string): Promise<AuthUser>;
   resendVerification(email: string): Promise<{ verificationCode?: string }>;
+  forgotPassword(email: string): Promise<{ resetCode?: string }>;
+  resetPassword(email: string, code: string, newPassword: string): Promise<AuthUser>;
+  googleSession(sessionId: string): Promise<{ user: AuthUser; needsRole: boolean }>;
+  setRole(input: {
+    role: UserRole;
+    phone?: string;
+    certificateAssociation?: string;
+    certificateType?: string;
+    certificateNumber?: string;
+  }): Promise<AuthUser>;
   logout(): Promise<void>;
   refreshUser(): Promise<void>;
 }
@@ -153,6 +164,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { verificationCode: json.verificationCode };
   }, []);
 
+  const forgotPassword: AuthActions['forgotPassword'] = useCallback(async (email) => {
+    const json = await apiFetch('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+    return { resetCode: json.resetCode };
+  }, []);
+
+  const resetPassword: AuthActions['resetPassword'] = useCallback(async (email, code, newPassword) => {
+    const json = await apiFetch('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, code, newPassword }),
+    });
+    await AsyncStorage.setItem(TOKEN_KEY, json.token);
+    setState({ token: json.token, user: json.user, loading: false });
+    return json.user;
+  }, []);
+
+  const googleSession: AuthActions['googleSession'] = useCallback(async (sessionId) => {
+    const json = await apiFetch('/auth/google-session', {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId }),
+    });
+    await AsyncStorage.setItem(TOKEN_KEY, json.token);
+    setState({ token: json.token, user: json.user, loading: false });
+    return { user: json.user, needsRole: !!json.needsRole };
+  }, []);
+
+  const setRole: AuthActions['setRole'] = useCallback(async (input) => {
+    if (!state.token) throw new Error('Not signed in');
+    const json = await apiFetch('/auth/set-role', {
+      method: 'POST',
+      body: JSON.stringify(input),
+      headers: { Authorization: `Bearer ${state.token}` },
+    });
+    setState((s) => ({ ...s, user: json }));
+    return json;
+  }, [state.token]);
+
   const logout: AuthActions['logout'] = useCallback(async () => {
     await AsyncStorage.removeItem(TOKEN_KEY);
     setState({ token: null, user: null, loading: false });
@@ -167,7 +217,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [state.token]);
 
   return (
-    <AuthContext.Provider value={{ ...state, register, verifyCertificate, login, verifyEmail, resendVerification, logout, refreshUser }}>
+    <AuthContext.Provider value={{ ...state, register, verifyCertificate, login, verifyEmail, resendVerification, forgotPassword, resetPassword, googleSession, setRole, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

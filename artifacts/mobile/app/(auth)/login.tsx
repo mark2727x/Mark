@@ -7,6 +7,7 @@ import { Button } from '@workspace/latent-studio-ds/components/native/button';
 import { Input } from '@workspace/latent-studio-ds/components/native/input';
 import { H1, Body, Caption } from '@workspace/latent-studio-ds/components/native/typography';
 import { useAuth } from '@/context/auth';
+import { isGoogleAuthAvailable, startGoogleSignIn } from '@/lib/google-auth';
 
 const c = nativeTheme.colors.dark;
 
@@ -25,7 +26,11 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const user = await login(email.trim().toLowerCase(), password);
-      router.replace(user.role === 'lifeguard' ? '/(lifeguard)/feed' : '/(manager)/shifts');
+      if (!user.role) {
+        router.replace('/(auth)/pick-role');
+      } else {
+        router.replace(user.role === 'lifeguard' ? '/(lifeguard)/feed' : '/(manager)/shifts');
+      }
     } catch (e: any) {
       if (e?.data?.verificationRequired) {
         router.replace({
@@ -57,6 +62,23 @@ export default function LoginScreen() {
         <Body style={styles.sub}>Sign in to your ShiftGuard account</Body>
 
         <View style={styles.form}>
+          {isGoogleAuthAvailable && (
+            <>
+              <Button
+                variant="outline"
+                size="lg"
+                onPress={startGoogleSignIn}
+                testID="google-signin-btn-login"
+              >
+                Continue with Google
+              </Button>
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Caption style={styles.dividerText}>or sign in with email</Caption>
+                <View style={styles.dividerLine} />
+              </View>
+            </>
+          )}
           <Input
             label="Email"
             value={email}
@@ -78,6 +100,13 @@ export default function LoginScreen() {
           <Button size="lg" loading={loading} onPress={handleLogin} style={styles.btn}>
             Sign in
           </Button>
+          <TouchableOpacity
+            onPress={() => router.push('/(auth)/forgot-password')}
+            style={styles.forgotRow}
+            testID="forgot-password-link"
+          >
+            <Caption style={styles.switchLink}>Forgot password?</Caption>
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity onPress={() => router.push('/(auth)/register')} style={styles.switchRow}>
@@ -104,4 +133,19 @@ const styles = StyleSheet.create({
   switchRow: { marginTop: 32, alignItems: 'center' },
   switchText: { color: c.mutedForeground },
   switchLink: { color: c.primary, fontFamily: nativeTheme.fontFamily.sansMedium },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginVertical: 4,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: c.border,
+  },
+  dividerText: {
+    color: c.mutedForeground,
+  },
+  forgotRow: { alignSelf: 'center', paddingVertical: 6 },
 });

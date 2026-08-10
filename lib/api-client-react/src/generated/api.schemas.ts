@@ -94,7 +94,10 @@ export interface ResendVerificationInput {
   email: string;
 }
 
-export type UserRole = typeof UserRole[keyof typeof UserRole];
+/**
+ * @nullable
+ */
+export type UserRole = typeof UserRole[keyof typeof UserRole] | null;
 
 
 export const UserRole = {
@@ -108,7 +111,10 @@ export interface User {
   /** Present for the authenticated user and assigned shift participants only */
   phone?: string;
   name: string;
-  role: UserRole;
+  /** @nullable */
+  role?: UserRole;
+  /** @nullable */
+  avatarUrl?: string | null;
   /** @nullable */
   bio?: string | null;
   /** @nullable */
