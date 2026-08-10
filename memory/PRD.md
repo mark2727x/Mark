@@ -40,6 +40,14 @@ Add so that payment can be through stripe.
    with events `checkout.session.completed`, `checkout.session.expired`, `checkout.session.async_payment_failed`, `account.updated`
 5. Claim the sandbox at the onboarding URL when ready to go live
 
+## Preview environment (Emergent)
+- Supervisor now runs:
+  - `backend` — Node/Express API on :8001 (routes at `/api/*`)
+  - `frontend` — lightweight preview dashboard on :3000 (browser demo of the Stripe flow — real product is the native Expo app)
+  - `postgresql` — local Postgres on :5432 (DB `shiftguard`, user `shiftguard`)
+- Public preview URL: `https://stripe-payment-21.preview.emergentagent.com`
+- Schema pushed on Postgres via `pnpm --filter @workspace/db run push`
+
 ## Test flow
 - Register a lifeguard → open Profile → "Set up Stripe payouts" → complete Stripe onboarding (test data)
 - Register a manager → post a shift, have the lifeguard pick it up
